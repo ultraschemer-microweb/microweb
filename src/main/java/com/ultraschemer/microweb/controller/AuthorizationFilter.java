@@ -18,7 +18,7 @@ public class AuthorizationFilter implements BasicController {
         unfilteredPaths = new HashSet<>();
 
         // Adiciona todas as rotas que não são filtradas por autorização:
-        unfilteredPaths.add("/login");
+        unfilteredPaths.add("/v0/login");
     }
 
     private boolean isPathUnfiltered(String path) {
@@ -29,6 +29,10 @@ public class AuthorizationFilter implements BasicController {
         }
 
         return false;
+    }
+
+    private void addUnfilteredPath(String path) {
+        unfilteredPaths.add(path);
     }
 
     @Override
