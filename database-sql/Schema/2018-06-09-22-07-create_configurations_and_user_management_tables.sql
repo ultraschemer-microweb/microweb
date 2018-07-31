@@ -5,6 +5,12 @@
 ---------------------------------------------------------------------------------------------------
 
 --
+-- Set extensions necessary to ensure data security:
+--
+CREATE EXTENSION "uuid-ossp";
+CREATE EXTENSION "pgcrypto";
+
+--
 -- This is the version table, used to control schema creation and system updates:
 --
 create table version (
