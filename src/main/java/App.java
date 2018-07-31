@@ -3,6 +3,7 @@ import com.ultraschemer.microweb.controller.LoginController;
 import com.ultraschemer.microweb.controller.LogoffController;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.http.HttpMethod;
 
 /*
  * Entry point principal da aplicação:

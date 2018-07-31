@@ -14,7 +14,7 @@ public class LogoffController implements BasicController {
     @Override
     public void evaluate(Route route) {
         route.handler(BodyHandler.create()).blockingHandler(routingContext -> {
-            String token = routingContext.request().getHeader("Altec-Access-Token");
+            String token = routingContext.request().getHeader("Microweb-Access-Token");
 
             try {
                 AuthManagement.unauthorize(token);

@@ -41,7 +41,7 @@ public class AuthorizationFilter implements BasicController {
                 routingContext.next();
             } else {
                 // Verifica a token de autorização:
-                String token = routingContext.request().getHeader("Altec-Access-Token");
+                String token = routingContext.request().getHeader("Microweb-Access-Token");
 
                 // Localiza o usuário a partir da access token:
                 try {

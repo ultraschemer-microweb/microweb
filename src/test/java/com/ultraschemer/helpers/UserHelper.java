@@ -45,6 +45,8 @@ public class UserHelper {
 
     public static void clearAll() {
         Session session = EntityUtil.openTransactionSession();
+        session.createQuery("delete from User_Role").executeUpdate();
+        session.createQuery("delete from Role").executeUpdate();
         session.createQuery("delete from User").executeUpdate();
         session.getTransaction().commit();
     }
