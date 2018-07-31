@@ -31,7 +31,7 @@ public class AuthorizationFilter implements BasicController {
         return false;
     }
 
-    private void addUnfilteredPath(String path) {
+    protected void addUnfilteredPath(String path) {
         unfilteredPaths.add(path);
     }
 
