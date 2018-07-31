@@ -1,0 +1,31 @@
+<!DOCTYPE hibernate-configuration PUBLIC
+        "-//Hibernate/Hibernate Configuration DTD 3.0//EN"
+        "http://hibernate.sourceforge.net/hibernate-configuration-3.0.dtd">
+<hibernate-configuration>
+    <session-factory>
+        <property name="connection.driver_class">org.postgresql.Driver</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://192.168.99.100:5432/starringnews</property>
+        <property name="hibernate.connection.username">starringnews</property>
+        <property name="hibernate.connection.password">starringnews</property>
+        <property name="hibernate.connection.pool_size">16</property>
+        <property name="show_sql">true</property>
+        <property name="dialect">org.hibernate.dialect.PostgreSQL93Dialect</property>
+        <!--
+         TODO: Study how to use the DDL generator - and then enable it suitably. Meanwhile it's completely disabled.
+         property name="hibernate.hbm2ddl.auto">update</property -->
+
+        <!-- The entity mappings: -->
+        <mapping class="com.ultraschemer.microweb.entity.AccessToken"/>
+        <mapping class="com.ultraschemer.microweb.entity.Configuration"/>
+        <mapping class="com.ultraschemer.microweb.entity.EmailAddress"/>
+        <mapping class="com.ultraschemer.microweb.entity.Person"/>
+        <mapping class="com.ultraschemer.microweb.entity.PhoneNumber"/>
+        <mapping class="com.ultraschemer.microweb.entity.Role"/>
+        <mapping class="com.ultraschemer.microweb.entity.User"/>
+        <mapping class="com.ultraschemer.microweb.entity.User_EmailAddress"/>
+        <mapping class="com.ultraschemer.microweb.entity.User_PhoneNumber"/>
+        <mapping class="com.ultraschemer.microweb.entity.User_Role"/>
+        <mapping class="com.ultraschemer.microweb.entity.LockControl"/>
+        <mapping class="com.ultraschemer.microweb.entity.Runtime"/>
+    </session-factory>
+</hibernate-configuration>
