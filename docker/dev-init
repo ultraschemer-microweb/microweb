@@ -1,0 +1,39 @@
+#!/bin/bash
+
+echo "Running docker container!!!!"
+FINISH=false
+PIDS=""
+
+function linger() {
+  # Wait for the script be EXPLICITLY SHUT DOWN, by setting FINISH to true:
+  while [ true ]; do 
+    if [ "$FINISH" == "true" ]; then
+      # Stop the process
+      echo "Finishing entire container..."
+      exit 0
+    fi
+    sleep 1 
+  done &
+  wait
+}
+
+function initialize() {
+  echo "Starting..."  
+  
+  # TODO: Add any service initialization here.
+  
+  # Maintain the script running indefinitely:
+  linger
+}
+
+
+function finalize() {
+  # TODO: add any service finalization here.
+
+  # Set this script to be finished:
+  FINISH=true
+}
+
+trap finalize SIGTERM
+initialize
+

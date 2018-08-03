@@ -1,0 +1,17 @@
+#!/bin/bash
+set -e
+
+ME=`dirname $0`
+USER=$1
+
+if [[ "${ME}" != "" ]]; then
+  cd "${ME}"
+fi
+
+if [[ "${USER}" = "" ]]; then
+  USER=admin
+fi
+
+cd ..
+
+docker exec -it --user ${USER} microweb /bin/bash

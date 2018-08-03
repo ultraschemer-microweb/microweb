@@ -1,0 +1,15 @@
+#!/bin/bash
+set -e
+
+ME=`dirname $0`
+DIR=$1
+
+if [[ "${ME}" != "" ]]; then
+  cd "${ME}"
+fi
+
+if [[ "${DIR}" = "" ]]; then
+  DIR=`pwd`
+fi
+
+docker stop -t 1 microweb

@@ -1,0 +1,45 @@
+#!/bin/bash
+set -e
+set -x
+
+ME=`dirname $0`
+
+if [[ "${ME}" != "" ]]; then
+  cd "${ME}"
+fi
+
+DIR=`pwd`
+
+echo "Building java packages..."
+echo
+echo "Insert the Postgres address:"
+echo "Insert the Postgres port:"
+echo "Insert the Postgres database name:"
+echo "Insert the Postgres user name:"
+echo "Insert the Postgres user password:"
+
+echo "Tweaking hibernate.cfg.xml file."
+
+sed -i.ORIGINAL "s/<property name=\"hibernate.connection.url\">.*<\/property>/<property name=\"hibernate.connection.url\">jdbc:postgresql:\/\/${ADDRESS}:${PORT}\/${DATABASE}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+sed -i.BAK "s/<property name=\"hibernate.connection.username\">.*<\/property>/<property name=\"hibernate.connection.username\">${USERNAME}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+sed -i.BAK "s/<property name=\"hibernate.connection.password\">.*<\/property>/<property name=\"hibernate.connection.password\">${PASSWORD}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+
+echo "Backing up the original JPA configuration."
+cp ../src/main/resources/hibernate.cfg.xml.ORIGINAL ./hibernate.cfg.xml
+
+echo "Removing unnecessary JPA configuration files."
+rm ../src/main/resources/*.BAK ../src/main/resources/*.ORIGINAL
+
+echo "Building..."
+cd ..
+
+cd $DIR
+echo "Building development containers..."
+
+set +e
+docker stop -t 100 microweb
+set -e
+
+# dos2unix dev-init
+# docker image prune -fa
+# docker build --rm -t microweb-base .
