@@ -3,9 +3,9 @@
 #
 # Access configurations:
 #
-DATABASE=example
-USERNAME=example
-PASSWORD=example
+DATABASE=microweb
+USERNAME=microweb
+PASSWORD=microweb
 
 #
 # Main procedures:

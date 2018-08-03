@@ -4,9 +4,9 @@
 <hibernate-configuration>
     <session-factory>
         <property name="connection.driver_class">org.postgresql.Driver</property>
-        <property name="hibernate.connection.url">jdbc:postgresql://192.168.99.100:5432/example</property>
-        <property name="hibernate.connection.username">example</property>
-        <property name="hibernate.connection.password">example</property>
+        <property name="hibernate.connection.url">jdbc:postgresql://192.168.99.100:5432/microweb</property>
+        <property name="hibernate.connection.username">microweb</property>
+        <property name="hibernate.connection.password">microweb</property>
         <property name="hibernate.connection.pool_size">16</property>
         <property name="show_sql">true</property>
         <property name="dialect">org.hibernate.dialect.PostgreSQL93Dialect</property>
