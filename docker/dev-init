@@ -20,7 +20,7 @@ function linger() {
 function initialize() {
   echo "Starting..."  
   
-  # TODO: Add any service initialization here.
+  java -jar /usr/local/lib/microweb/microweb-all.jar run App --launcher-class=io.vertx.core.Launcher
   
   # Maintain the script running indefinitely:
   linger
@@ -28,7 +28,7 @@ function initialize() {
 
 
 function finalize() {
-  # TODO: add any service finalization here.
+  killall java
 
   # Set this script to be finished:
   FINISH=true

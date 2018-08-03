@@ -48,6 +48,8 @@ RUN apt-get update -y
 RUN apt-get install -y --no-install-recommends oracle-java10-installer oracle-java10-set-default
 
 COPY dev-init /usr/local/bin/dev-init
+RUN mkdir /usr/local/lib/microweb
+COPY microweb-all.jar /usr/local/lib/microweb/microweb-all.jar
 RUN chmod 555 /usr/local/bin/dev-init
 
 # Finally, install Node.js to support web development:

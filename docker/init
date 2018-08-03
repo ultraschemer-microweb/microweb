@@ -31,9 +31,11 @@ echo "Removing unnecessary JPA configuration files."
 rm ../src/main/resources/*.BAK ../src/main/resources/*.ORIGINAL
 
 echo "Building..."
-cd ..
+(cd .. && gradle shadowJar)
 
-cd $DIR
+cp ../build/libs/microweb-all.jar ./microweb-all.jar
+mv hibernate.cfg.xml ../src/main/resources/hibernate.cfg.xml
+
 echo "Building development containers..."
 
 set +e
@@ -43,3 +45,5 @@ set -e
 # dos2unix dev-init
 # docker image prune -fa
 # docker build --rm -t microweb-base .
+
+rm microweb-all.jar
