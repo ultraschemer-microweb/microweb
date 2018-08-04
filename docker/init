@@ -64,6 +64,6 @@ docker stop -t 100 microweb
 dos2unix dev-init
 set -e
 
-# docker build --rm -t microweb-base .
+docker build --rm -t microweb-base .
 
 rm microweb-all.jar
