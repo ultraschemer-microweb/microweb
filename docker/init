@@ -12,11 +12,30 @@ DIR=`pwd`
 
 echo "Building java packages..."
 echo
-echo "Insert the Postgres address:"
-echo "Insert the Postgres port:"
-echo "Insert the Postgres database name:"
-echo "Insert the Postgres user name:"
-echo "Insert the Postgres user password:"
+if [[ -z "${PGADDR}" ]]; then
+  echo "Insert the Postgres address:"
+  read PGADDR
+fi
+
+if [[ -z "${PGPORT}" ]]; then
+  echo "Insert the Postgres port:"
+  read PGPORT
+fi
+
+if [[ -z "${PGDBNAME}" ]]; then
+  echo "Insert the Postgres database name:"
+  read PGDBNAME
+fi
+
+if [[ -z "${PGUSER}" ]]; then
+  echo "Insert the Postgres user name:"
+  read PGUSER
+fi
+
+if [[ -z "${PGPASSWD}" ]]; then
+  echo "Insert the Postgres user password:"
+  read PGPASSWD
+fi
 
 echo "Tweaking hibernate.cfg.xml file."
 
@@ -34,6 +53,8 @@ echo "Building..."
 (cd .. && gradle shadowJar)
 
 cp ../build/libs/microweb-all.jar ./microweb-all.jar
+
+echo "Restoring original hibernate.cfg.xml file."
 mv hibernate.cfg.xml ../src/main/resources/hibernate.cfg.xml
 
 echo "Building development containers..."
@@ -43,7 +64,6 @@ docker stop -t 100 microweb
 set -e
 
 # dos2unix dev-init
-# docker image prune -fa
 # docker build --rm -t microweb-base .
 
 rm microweb-all.jar
