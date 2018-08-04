@@ -36,7 +36,7 @@ RUN apt-get dist-upgrade -y
 RUN apt-get install -y \
     software-properties-common vim less man unzip wget net-tools vim less \
     man unzip wget net-tools nginx-full python-software-properties \ 
-    postgresql-client python-pip python3-pip curl
+    postgresql-client python-pip python3-pip curl psmisc
 
 # Install Java10 SDK:
 RUN apt-get --purge remove openjdk* 
