@@ -61,9 +61,9 @@ echo "Building development containers..."
 
 set +e
 docker stop -t 100 microweb
+dos2unix dev-init
 set -e
 
-# dos2unix dev-init
 # docker build --rm -t microweb-base .
 
 rm microweb-all.jar
