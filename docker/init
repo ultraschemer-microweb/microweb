@@ -39,9 +39,9 @@ fi
 
 echo "Tweaking hibernate.cfg.xml file."
 
-sed -i.ORIGINAL "s/<property name=\"hibernate.connection.url\">.*<\/property>/<property name=\"hibernate.connection.url\">jdbc:postgresql:\/\/${ADDRESS}:${PORT}\/${DATABASE}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
-sed -i.BAK "s/<property name=\"hibernate.connection.username\">.*<\/property>/<property name=\"hibernate.connection.username\">${USERNAME}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
-sed -i.BAK "s/<property name=\"hibernate.connection.password\">.*<\/property>/<property name=\"hibernate.connection.password\">${PASSWORD}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+sed -i.ORIGINAL "s/<property name=\"hibernate.connection.url\">.*<\/property>/<property name=\"hibernate.connection.url\">jdbc:postgresql:\/\/${PGADDR}:${PGPORT}\/${PGDBNAME}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+sed -i.BAK "s/<property name=\"hibernate.connection.username\">.*<\/property>/<property name=\"hibernate.connection.username\">${PGUSER}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
+sed -i.BAK "s/<property name=\"hibernate.connection.password\">.*<\/property>/<property name=\"hibernate.connection.password\">${PGPASSWD}<\/property>/g" ../src/main/resources/hibernate.cfg.xml
 
 echo "Backing up the original JPA configuration."
 cp ../src/main/resources/hibernate.cfg.xml.ORIGINAL ./hibernate.cfg.xml
