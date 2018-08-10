@@ -35,8 +35,7 @@ RUN apt-get dist-upgrade -y
 # Install the base system programs, services and applications:
 RUN apt-get install -y \
     software-properties-common vim less man unzip wget net-tools vim less \
-    man unzip wget net-tools nginx-full python-software-properties \ 
-    postgresql-client python-pip python3-pip curl psmisc
+    man unzip wget curl psmisc
 
 # Install Java10 SDK:
 RUN apt-get --purge remove openjdk* 
@@ -51,10 +50,6 @@ COPY dev-init /usr/local/bin/dev-init
 RUN mkdir /usr/local/lib/microweb
 COPY microweb-all.jar /usr/local/lib/microweb/microweb-all.jar
 RUN chmod 555 /usr/local/bin/dev-init
-
-# Finally, install Node.js to support web development:
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - &&\
-    apt-get install -y nodejs
 
 # Clean the machine:
 RUN apt-get -q -y autoremove
