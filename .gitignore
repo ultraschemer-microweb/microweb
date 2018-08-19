@@ -93,3 +93,6 @@ atlassian-ide-plugin.xml
 /jmeter/jmeter.log
 /jmeter/target/
 /jmeter/*.iml
+
+# AspectJ log files:
+ajcore.*.txt
