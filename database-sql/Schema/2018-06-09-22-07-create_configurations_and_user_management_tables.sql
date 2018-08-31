@@ -5,12 +5,6 @@
 ---------------------------------------------------------------------------------------------------
 
 --
--- Set extensions necessary to ensure data security:
---
-CREATE EXTENSION "uuid-ossp";
-CREATE EXTENSION "pgcrypto";
-
---
 -- This is the version table, used to control schema creation and system updates:
 --
 create table version (
@@ -255,7 +249,7 @@ create table user__role (
   role_id uuid not null references role(id),
 
   -- Relationship create time:
-  created_at timestamp with time zone not null,
+  created_at timestamp with time zone not null default now(),
 
   -- Add constraints:
   constraint user_id_role_id_uidx unique(user_id, role_id)
