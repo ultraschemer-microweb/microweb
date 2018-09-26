@@ -35,10 +35,10 @@ public class LoginController implements BasicController {
             if(data == null) {
                 Exception error = routingContext.get("error");
                 if(error instanceof StandardException) {
-                    routingContext.response().end(Json.encode(((StandardException) error).bean()));
+                    routingContext.response().setStatusCode(401).end(Json.encode(((StandardException) error).bean()));
                 } else {
-                    UnknownException unknown = new UnknownException("Erro desconhecido: " + error.getMessage());
-                    routingContext.response().end(Json.encode(unknown.bean()));
+                    UnknownException unknown = new UnknownException("Unknown error: " + error.getMessage());
+                    routingContext.response().setStatusCode(500).end(Json.encode(unknown.bean()));
                 }
             } else {
                 routingContext.response().end(Json.encode(data));
