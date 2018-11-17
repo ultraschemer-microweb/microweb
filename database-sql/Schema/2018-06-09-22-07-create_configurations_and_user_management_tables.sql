@@ -14,6 +14,18 @@ create table version (
   create_date timestamp with time zone not null default now()
 );
 
+-- This table stores the entity history in the entire database. It's a JSON
+-- database, indexed on the id field, to enable fast search
+create table entity_history (
+  -- The primary key is a sequential big number, to ensure order.
+  -- This is the only table in the entire system not using a GUID id.
+  id numeric(1000) not null primary key,
+  entity_name varchar(1024) not null,
+  entity_id uuid not null,
+  entity_data jsonb not null,
+  create_date timestamp with time zone not null default now(),
+  constraint entity_history_name_id_uidx unique(entity_name, entity_id)
+);
 
 --
 -- This is the seed control table, used to control seeding:

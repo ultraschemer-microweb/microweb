@@ -30,8 +30,9 @@ public class LogoffController implements BasicController {
             response.putHeader("Content-Type", "application/json; charset=utf-8");
 
             if(error == null) {
-                // TODO: Atribuir códigos de mensagem para o sistema - e segui-los. Obs.: Definir em especificação.
                 Message msg = new Message();
+                msg.setHttpStatus(500);
+                msg.setCode("154840d6-edd4-4636-a2fb-a2c34080abd3");
                 msg.setMessage("Usuário saiu do sistema com sucesso.");
                 response.setStatusCode(msg.getHttpStatus()).end(Json.encode(msg));
             } else {

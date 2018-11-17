@@ -4,7 +4,7 @@ import javax.persistence.*;
 import java.util.UUID;
 
 @MappedSuperclass
-public abstract class Identifiable extends Logabble {
+public abstract class Identifiable extends Loggable {
     /**
      * The primary key of Identifiable entities are always UUIDs, to maintain a secure uniqueness on them.
      */
@@ -17,3 +17,4 @@ public abstract class Identifiable extends Logabble {
         return id;
     }
 }
+
