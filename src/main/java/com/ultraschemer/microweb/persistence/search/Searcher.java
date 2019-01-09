@@ -1,5 +1,6 @@
 package com.ultraschemer.microweb.persistence.search;
 
+import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.error.QueryParseException;
 import com.ultraschemer.microweb.domain.error.SearchConditionNotFoundException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
@@ -25,13 +26,14 @@ public class Searcher<T> {
         this.entityName = entityName;
     }
 
-    public List<T> load(Item... items) throws SearchConditionNotFoundException {
+    public List<T> load(Item... items) throws SearchConditionNotFoundException, QueryParseException {
         return load(null, items);
     }
 
     public List<T> load(Map<String, String> parameterConversions, Item... items)
-            throws SearchConditionNotFoundException
-    {
+            throws SearchConditionNotFoundException, QueryParseException {
+        List<T> ts = null;
+
         StringBuilder hql = new StringBuilder("from " + entityName + " where ");
         for(Item item : items) {
             if(item instanceof Parameter) {
@@ -77,36 +79,40 @@ public class Searcher<T> {
         }
 
         // Gera a query e a executa:
-        Session session = EntityUtil.openTransactionSession();
+        try(Session session = EntityUtil.openTransactionSession()) {
+            Query query = session.createQuery(hql.toString());
 
-        @SuppressWarnings("unchecked")
-        Query query = session.createQuery(hql.toString());
-
-        for(Item item : items) {
-            if(item instanceof Parameter) {
-                Parameter parameter = (Parameter) item;
-                Object value = parameter.getValue();
-                switch (parameter.getCriterion().toLowerCase()) {
-                    case "contains":
-                        query.setParameter(parameter.getField(),
-                                "%" + parameter.getValue().toString().toLowerCase() + "%");
-                        break;
-                    case "starts":
-                        query.setParameter(parameter.getField(),
-                                parameter.getValue().toString().toLowerCase() + "%");
-                        break;
-                    case "finishes":
-                        query.setParameter(parameter.getField(),
-                                "%" + parameter.getValue().toString().toLowerCase());
-                        break;
-                    default:
-                        query.setParameter(parameter.getField(), value);
+            for(Item item : items) {
+                if(item instanceof Parameter) {
+                    Parameter parameter = (Parameter) item;
+                    Object value = parameter.getValue();
+                    switch (parameter.getCriterion().toLowerCase()) {
+                        case "contains":
+                            query.setParameter(parameter.getField(),
+                                    "%" + parameter.getValue().toString().toLowerCase() + "%");
+                            break;
+                        case "starts":
+                            query.setParameter(parameter.getField(),
+                                    parameter.getValue().toString().toLowerCase() + "%");
+                            break;
+                        case "finishes":
+                            query.setParameter(parameter.getField(),
+                                    "%" + parameter.getValue().toString().toLowerCase());
+                            break;
+                        default:
+                            query.setParameter(parameter.getField(), value);
+                    }
                 }
             }
-        }
 
-        @SuppressWarnings("unchecked")
-        List<T> ts = query.list();
+            @SuppressWarnings("unchecked")
+            List<T> tss = query.list();
+            ts = tss;
+        } catch (Exception e) {
+            String msg = "Erro ao fazer interpretação ou a execução de query string: " + e.getLocalizedMessage() +
+                    "\nStack-Trace: " + Throwables.getStackTraceAsString(e);
+            throw new QueryParseException(msg);
+        }
 
         return ts;
     }
