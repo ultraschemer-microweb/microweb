@@ -1,5 +1,7 @@
 package com.ultraschemer.microweb.domain;
 
+import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.domain.error.UnableToEnterCriticalSection;
 import com.ultraschemer.microweb.entity.LockControl;
 import com.ultraschemer.microweb.utils.MachineIdentification;
 import org.hibernate.Session;
@@ -146,73 +148,75 @@ public class DistributedCriticalSection {
      *
      * @return If raiseException = false, the return value is false if the critical section is not acquired. If true, the critical section has been acquired.
      */
-    public boolean enterCriticalSection() throws CriticalSectionAcquiringFailureException {
-        Session session = EntityUtil.openTransactionSession();
-        Transaction transaction = session.getTransaction();
+    public boolean enterCriticalSection() throws CriticalSectionAcquiringFailureException, UnableToEnterCriticalSection {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            Transaction transaction = session.getTransaction();
 
-        Calendar waitDate = Calendar.getInstance();
-        waitDate.add(Calendar.SECOND, wait);
+            Calendar waitDate = Calendar.getInstance();
+            waitDate.add(Calendar.SECOND, wait);
 
-        // Try to create the critical section register in database and ignore any kind of error:
-        LockControl control = new LockControl();
-        control.setName(name);
-        control.setStatus("F");
-        control.setExpiration(new Date());
-        control.setOwner(owner);
+            // Try to create the critical section register in database and ignore any kind of error:
+            LockControl control = new LockControl();
+            control.setName(name);
+            control.setStatus("F");
+            control.setExpiration(new Date());
+            control.setOwner(owner);
 
-        try {
-            session.persist(control);
-            transaction.commit();
-        } catch (PersistenceException pe) {
-            // Do nothing, because, in case of PersistenceException, it means the lock register already exists and
-            // it doesn't need to be created again.
-            pe.printStackTrace();
-        }
-
-
-        boolean exit = false;
-        while(!exit) {
-            Calendar expirationDate = Calendar.getInstance();
-
-            expirationDate.add(Calendar.SECOND, expiration);
-
-            if(!transaction.isActive()) {
-                transaction.begin();
+            try {
+                session.persist(control);
+                transaction.commit();
+            } catch (PersistenceException pe) {
+                // Do nothing, because, in case of PersistenceException, it means the lock register already exists and
+                // it doesn't need to be created again.
+                pe.printStackTrace();
             }
 
-            String queryText = "Update LockControl set status = :status, expiration = :expiration, owner = :owner " +
-                    "Where (name = :name and status = :free_status) or (name = :name and expiration < :current_date)";
-            int updates =
-                    session.createQuery(queryText)
-                            .setParameter("status", "L")
-                            .setParameter("free_status", "F")
-                            .setParameter("expiration", expirationDate.getTime())
-                            .setParameter("current_date", new Date())
-                            .setParameter("name", name)
-                            .setParameter("owner", owner)
-                            .executeUpdate();
-            transaction.commit();
 
-            if(updates > 0) {
-                session.close();
-                return true;
-            }
+            boolean exit = false;
+            while (!exit) {
+                Calendar expirationDate = Calendar.getInstance();
 
-            if(!Calendar.getInstance().after(waitDate)) {
-                // By default, eight tries per second to acquire a lock. If sleepTime is changed, this amount of tries
-                // can vary.
-                try {
-                    Thread.sleep(getSleepTime());
-                } catch (InterruptedException e) {
-                    // Do nothing, because this error is irrelevant to this feature context.
+                expirationDate.add(Calendar.SECOND, expiration);
+
+                if (!transaction.isActive()) {
+                    transaction.begin();
                 }
-            } else {
-                // It has been not possible to acquire lock, in the waiting time, so don't try anymore:
-                exit = true;
-            }
-        }
 
-        session.close();
+                String queryText = "Update LockControl set status = :status, expiration = :expiration, owner = :owner " +
+                        "Where (name = :name and status = :free_status) or (name = :name and expiration < :current_date)";
+                int updates =
+                        session.createQuery(queryText)
+                                .setParameter("status", "L")
+                                .setParameter("free_status", "F")
+                                .setParameter("expiration", expirationDate.getTime())
+                                .setParameter("current_date", new Date())
+                                .setParameter("name", name)
+                                .setParameter("owner", owner)
+                                .executeUpdate();
+                transaction.commit();
+
+                if (updates > 0) {
+                    session.close();
+                    return true;
+                }
+
+                if (!Calendar.getInstance().after(waitDate)) {
+                    // By default, eight tries per second to acquire a lock. If sleepTime is changed, this amount of tries
+                    // can vary.
+                    try {
+                        Thread.sleep(getSleepTime());
+                    } catch (InterruptedException e) {
+                        // Do nothing, because this error is irrelevant to this feature context.
+                    }
+                } else {
+                    // It has been not possible to acquire lock, in the waiting time, so don't try anymore:
+                    exit = true;
+                }
+            }
+        } catch(PersistenceException pe) {
+            throw new UnableToEnterCriticalSection("It wasn't possible to enter in the critical section: " +
+                    pe.getLocalizedMessage() + "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
+        }
 
         if(raiseException) {
             String message = "It has been not possible to acquire critical section with name: " + name;

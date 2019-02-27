@@ -22,22 +22,25 @@ public class PersonHelper {
     public static Person generateAndPersist() {
         Person p = generate();
 
-        Session session = EntityUtil.openTransactionSession();
-        session.save(p);
-        session.getTransaction().commit();
+        try(Session session = EntityUtil.openTransactionSession()) {
+            session.save(p);
+            session.getTransaction().commit();
+        }
 
         return p;
     }
 
     public static void clear(Person p) {
-        Session session = EntityUtil.openTransactionSession();
-        session.delete(p);
-        session.getTransaction().commit();
+        try(Session session = EntityUtil.openTransactionSession()) {
+            session.delete(p);
+            session.getTransaction().commit();
+        }
     }
 
     public static void clearAll() {
-        Session session = EntityUtil.openTransactionSession();
-        session.createQuery("delete from Person").executeUpdate();
-        session.getTransaction().commit();
+        try(Session session = EntityUtil.openTransactionSession()) {
+            session.createQuery("delete from Person").executeUpdate();
+            session.getTransaction().commit();
+        }
     }
 }

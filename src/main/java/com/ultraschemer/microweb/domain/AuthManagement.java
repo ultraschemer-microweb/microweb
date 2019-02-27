@@ -1,15 +1,16 @@
 package com.ultraschemer.microweb.domain;
 
+import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.AuthenticationData;
 import com.ultraschemer.microweb.domain.bean.AuthorizationData;
-import com.ultraschemer.microweb.domain.error.UnableToGenerateAccessTokenException;
-import com.ultraschemer.microweb.domain.error.UnauthorizedException;
+import com.ultraschemer.microweb.domain.error.*;
 import com.ultraschemer.microweb.entity.AccessToken;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.hibernate.Session;
 
 import javax.persistence.NoResultException;
+import javax.persistence.PersistenceException;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -61,67 +62,70 @@ public class AuthManagement {
      * @throws UnableToGenerateAccessTokenException Raised if a random authorization access token couldn't be generated.
      */
     public static AuthorizationData authenticate(AuthenticationData authenticationData)
-            throws UnauthorizedException, UnableToGenerateAccessTokenException {
+            throws UnauthorizedException, UnableToGenerateAccessTokenException, UnableToAuthenticateException {
         // TODO: Implement authorization token TTL.
 
         AuthorizationData authorizationData = new AuthorizationData();
-        Boolean go = true;
+        boolean go = true;
 
-        Session session = EntityUtil.openTransactionSession();
+        try(Session session = EntityUtil.openTransactionSession()) {
 
-        // Load the user by its name:
-        User user;
-        try {
-            user = session.createQuery("from User where name = :name", User.class)
-                    .setParameter("name", authenticationData.getName())
-                    .getSingleResult();
-        } catch(NoResultException ne) {
-            session.close();
-            String message =
-                    "It has been not possible to authenticate user/password information. " +
-                            "It's not possible to proceed.";
-            throw new UnauthorizedException(message);
-        }
-
-        if(!validate(authenticationData.getPassword(), user.getPassword())) {
-            session.close();
-            String message =
-                    "It has been not possible to authenticate user/password information. " +
-                    "It's not possible to proceed.";
-            throw new UnauthorizedException(message);
-        }
-
-        int tryCount = 0;
-
-        AccessToken ac = new AccessToken();
-        ac.setStatus(VALID);
-        ac.setUserId(user.getId());
-
-        while(go) {
+            // Load the user by its name:
+            User user;
             try {
-                ac.setToken(generateAccessToken());
+                user = session.createQuery("from User where name = :name", User.class)
+                        .setParameter("name", authenticationData.getName())
+                        .getSingleResult();
+            } catch (NoResultException ne) {
+                session.close();
+                String message =
+                        "It has been not possible to authenticate user/password information. " +
+                                "It's not possible to proceed.";
+                throw new UnauthorizedException(message);
+            }
 
-                // Persist - if any error occurs, try again, until ten times - then give up.
-                session.persist(ac);
+            if (!validate(authenticationData.getPassword(), user.getPassword())) {
+                session.close();
+                String message =
+                        "It has been not possible to authenticate user/password information. " +
+                                "It's not possible to proceed.";
+                throw new UnauthorizedException(message);
+            }
 
-                session.getTransaction().commit();
-                go = false;
-            } catch (Exception e) {
-                go = true;
-                tryCount++;
+            int tryCount = 0;
 
-                if (tryCount >= 10) {
-                    session.close();
+            AccessToken ac = new AccessToken();
+            ac.setStatus(VALID);
+            ac.setUserId(user.getId());
 
-                    String message = "Não foi possível criar token de autorização. Tente novamente.";
-                    throw new UnableToGenerateAccessTokenException(message);
+            while (go) {
+                try {
+                    ac.setToken(generateAccessToken());
+
+                    // Persist - if any error occurs, try again, until ten times - then give up.
+                    session.persist(ac);
+
+                    session.getTransaction().commit();
+                    go = false;
+                } catch (Exception e) {
+                    go = true;
+                    tryCount++;
+
+                    if (tryCount >= 10) {
+                        session.close();
+
+                        String message = "Não foi possível criar token de autorização. Tente novamente.";
+                        throw new UnableToGenerateAccessTokenException(message);
+                    }
                 }
             }
-        }
 
-        session.close();
-        authorizationData.setAccessToken(ac.getToken());
-        authorizationData.setTtl(TOKEN_TTL);
+            authorizationData.setAccessToken(ac.getToken());
+            authorizationData.setTtl(TOKEN_TTL);
+        } catch (PersistenceException pe) {
+            throw new UnableToAuthenticateException("Unable to authenticate: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
+        }
 
         return authorizationData;
     }
@@ -132,49 +136,52 @@ public class AuthManagement {
      * @return Os dados de usuário autorizado.
      * @throws UnauthorizedException Se a token não for válida ou se tiver expirada, essa exceção é lançada.
      */
-    public static User authorize(String token) throws UnauthorizedException {
+    public static User authorize(String token) throws UnauthorizedException, UnableToAuthorizeException {
         // TODO: Implementar o TTL da token de autorização, para melhorar a segurança.
 
-        Session session = EntityUtil.openTransactionSession();
+        try(Session session = EntityUtil.openTransactionSession()) {
+            // Carrega a token de autorização:
+            List<AccessToken> tokens = session.createQuery("from AccessToken where token = :token and status = :status", AccessToken.class)
+                    .setParameter("token", token)
+                    .setParameter("status", VALID)
+                    .list();
 
-        // Carrega a token de autorização:
-        List<AccessToken> tokens = session.createQuery("from AccessToken where token = :token and status = :status", AccessToken.class)
-                .setParameter("token", token)
-                .setParameter("status", VALID)
-                .list();
+            if (tokens.size() == 0) {
+                // Caso não haja Token de usuário, ele não está autorizado a continuar:
+                throw new UnauthorizedException("Acesso inválido - não autorizado a continuar.");
+            }
 
-        if(tokens.size() == 0) {
-            // Caso não haja Token de usuário, ele não está autorizado a continuar:
-            throw new UnauthorizedException("Acesso inválido - não autorizado a continuar.");
+            AccessToken accessToken = tokens.iterator().next();
+
+            User user = session.createQuery("from User where id = :id", User.class)
+                    .setParameter("id", accessToken.getUserId()).list().iterator().next();
+
+            return user;
+        } catch (PersistenceException pe) {
+            throw new UnableToAuthorizeException("Unable to authorize: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
-
-        AccessToken accessToken = tokens.iterator().next();
-
-        @SuppressWarnings("unchecked")
-        User user = (User) session.createQuery("from User where id = :id")
-                .setParameter("id", accessToken.getUserId()).list().iterator().next();
-
-        session.close();
-
-        return user;
     }
 
     /**
      * Invalida a token de acesso, não permitindo mais acesso daquela token ao sistema.
      * @param token A token de
      */
-    public static void unauthorize(String token) throws UnauthorizedException {
-        Session session = EntityUtil.openTransactionSession();
-        int updated = session.createQuery("update AccessToken set status = :status where token = :token")
-                .setParameter("status", INVALID)
-                .setParameter("token", token)
-                .executeUpdate();
-        session.getTransaction().commit();
-        session.close();
+    public static void unauthorize(String token) throws UnauthorizedException, UnableToUnauthorizeException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            int updated = session.createQuery("update AccessToken set status = :status where token = :token")
+                    .setParameter("status", INVALID)
+                    .setParameter("token", token)
+                    .executeUpdate();
+            session.getTransaction().commit();
 
-        if(updated == 0) {
-            String message = "Usuário não autorizado ou acesso já expirado.";
-            throw new UnauthorizedException(message);
+            if (updated == 0) {
+                String message = "Usuário não autorizado ou acesso já expirado.";
+                throw new UnauthorizedException(message);
+            }
+        } catch (PersistenceException pe) {
+            throw new UnableToUnauthorizeException("Unable to unauthorize: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
     }
 }
