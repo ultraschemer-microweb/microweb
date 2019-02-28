@@ -1,7 +1,7 @@
 package com.ultraschemer.microweb.domain;
 
-import com.ultraschemer.microweb.domain.error.CriticalSectionAcquiringFailureException;
-import com.ultraschemer.microweb.domain.error.CriticalSectionExitFailureException;
+import com.ultraschemer.microweb.domain.error.*;
+import com.ultraschemer.microweb.error.StandardException;
 
 import java.math.BigInteger;
 
@@ -33,7 +33,7 @@ public class Sequence {
     /**
      * Initialize the sequence, to prepare it to number increment.
      */
-    private void initializeSequence() {
+    private void initializeSequence() throws UnableToWriteRuntimeException, UnableToReadRuntimeException {
         String seqVal = Runtime.read(this.sequenceName);
         if("".equals(seqVal)) {
             Runtime.write(this.sequenceName,"0");
@@ -52,7 +52,7 @@ public class Sequence {
      *
      * @return O número de sequência a ser usado.
      */
-    public long getNext() throws CriticalSectionAcquiringFailureException, CriticalSectionExitFailureException {
+    public long getNext() throws StandardException {
         DistributedCriticalSection criticalSection = new DistributedCriticalSection(this.sequenceName);
 
         // Se entrar adequadamente na seção crítica, então é possível obter o objeto de sequência:
@@ -75,7 +75,7 @@ public class Sequence {
      * seções críticas.
      * @return O número de sequência a ser usado.
      */
-    public long getCurrent() throws CriticalSectionAcquiringFailureException, CriticalSectionExitFailureException {
+    public long getCurrent() throws StandardException {
         DistributedCriticalSection criticalSection = new DistributedCriticalSection(this.sequenceName);
 
         // Se entrar adequadamente na seção crítica, então é possível obter o objeto de sequência:
@@ -95,7 +95,7 @@ public class Sequence {
      * Reinicia o contador de volta a zero.
      *
      */
-    public void reset() throws CriticalSectionAcquiringFailureException, CriticalSectionExitFailureException {
+    public void reset() throws StandardException {
         DistributedCriticalSection criticalSection = new DistributedCriticalSection(this.sequenceName);
 
         // Se entrar adequadamente na seção crítica, então é possível obter o objeto de sequência:

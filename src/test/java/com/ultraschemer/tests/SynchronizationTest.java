@@ -23,7 +23,7 @@ public class SynchronizationTest {
     }
 
     @Test
-    public void testReadAndWrite() {
+    public void testReadAndWrite() throws StandardException {
         // Lê um valor não atribuído:
         assertEquals("", Runtime.read("Variable"));
 
@@ -117,8 +117,7 @@ public class SynchronizationTest {
     }
 
     @Test
-    public void testSequenceManagement()
-            throws CriticalSectionAcquiringFailureException, CriticalSectionExitFailureException {
+    public void testSequenceManagement() throws StandardException {
         Sequence seq1 = new Sequence("seq1");
         Sequence seq2 = new Sequence("seq2");
 

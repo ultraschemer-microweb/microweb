@@ -12,13 +12,10 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 /**
- * This class performs automatic logging on all actions on database entities, sending an entire register snapshot
- * to a MongoDB database instance, suitable to save all database logs, one collection per type of entity.
+ * This class performs automatic logging on all actions on database entities.
  */
 @MappedSuperclass
 public abstract class Loggable implements Serializable {
-    // TODO: Implement MongoDB logging here.
-
     @SuppressWarnings("unused")
     @PostPersist
     public void logEntity() {

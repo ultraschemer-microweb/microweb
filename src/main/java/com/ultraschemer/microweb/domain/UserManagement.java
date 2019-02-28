@@ -1,12 +1,16 @@
 package com.ultraschemer.microweb.domain;
 
+import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.UserData;
 import com.ultraschemer.microweb.domain.bean.UserRole;
+import com.ultraschemer.microweb.domain.error.UnableToGetRolesFromUser;
+import com.ultraschemer.microweb.domain.error.UnableToLoadUserBySecureId;
 import com.ultraschemer.microweb.domain.error.UserAccessConfigurationException;
 import com.ultraschemer.microweb.domain.error.UserNotFoundException;
 import com.ultraschemer.microweb.entity.Role;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.entity.User_Role;
+import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.utils.Security;
 import org.hibernate.Session;
@@ -17,11 +21,10 @@ import java.util.List;
 import java.util.UUID;
 
 public class UserManagement {
-    private static List<Role> loadRolesFromUser(UUID userId) {
-        Session session = EntityUtil.openTransactionSession();
+    private static List<Role> loadRolesFromUser(UUID userId) throws UnableToGetRolesFromUser {
         List<Role> roles;
 
-        try {
+        try (Session session = EntityUtil.openTransactionSession()) {
             // Load, then, the roles the user assumes (Obs.: joins are avoided to reduce database query locking):
             @SuppressWarnings("unchecked")
             List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId")
@@ -39,8 +42,7 @@ public class UserManagement {
                 rolesId = new ArrayList<>(0);
             }
 
-            @SuppressWarnings("unchecked")
-            List<Role> roleList = session.createQuery("from Role where id in (:rolesId)")
+            List<Role> roleList = session.createQuery("from Role where id in (:rolesId)", Role.class)
                     .setParameterList("rolesId", rolesId)
                     .list();
 
@@ -49,8 +51,9 @@ public class UserManagement {
             } else {
                 roles = new ArrayList<>(0);
             }
-        } finally {
-          session.close();
+        } catch (PersistenceException pe) {
+            throw new UnableToGetRolesFromUser("It's not possible to get roles from user: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
 
         return roles;
@@ -64,7 +67,7 @@ public class UserManagement {
      * @throws UserNotFoundException
      * @throws UserAccessConfigurationException
      */
-    public static UserData loadUserByName(String name) throws UserNotFoundException {
+    public static UserData loadUserByName(String name) throws StandardException {
         User user;
 
         try (Session session = EntityUtil.openTransactionSession()) {
@@ -98,7 +101,7 @@ public class UserManagement {
         return uData;
     }
 
-    public static UserData loadUserBySecureId(String id) throws UserNotFoundException {
+    public static UserData loadUserBySecureId(String id) throws StandardException {
         User user;
 
         try (Session session = EntityUtil.openTransactionSession()) {
@@ -112,6 +115,9 @@ public class UserManagement {
             }
 
             user = users.iterator().next();
+        } catch (PersistenceException pe) {
+            throw new UnableToLoadUserBySecureId("It's not possible to load user by secure id: " +
+                    pe.getLocalizedMessage() + "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
 
         UserData uData = new UserData();
@@ -131,7 +137,7 @@ public class UserManagement {
         return uData;
     }
 
-    public static UserData loadUser(String nameOrId) throws UserAccessConfigurationException, UserNotFoundException {
+    public static UserData loadUser(String nameOrId) throws StandardException {
         // 1. Verifica se o campo passado é um UUID
         String uuidPattern =
                 "^(\\{[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\\}|" +
@@ -187,6 +193,8 @@ public class UserManagement {
 
                 session.getTransaction().commit();
             }
-        } catch(Exception e) { /* Nothing is expected here */ }
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
     }
 }

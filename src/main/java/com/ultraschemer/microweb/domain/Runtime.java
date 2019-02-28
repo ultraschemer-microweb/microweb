@@ -1,5 +1,8 @@
 package com.ultraschemer.microweb.domain;
 
+import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.domain.error.UnableToReadRuntimeException;
+import com.ultraschemer.microweb.domain.error.UnableToWriteRuntimeException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 import com.ultraschemer.microweb.persistence.EntityUtil;
@@ -21,27 +24,31 @@ public class Runtime {
      * @param name Variable name.
      * @param value The variable new value.
      */
-    public static void write(String name, String value) {
-        Session session = EntityUtil.openTransactionSession();
-        Transaction transaction = session.getTransaction();
+    public static void write(String name, String value) throws UnableToWriteRuntimeException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            Transaction transaction = session.getTransaction();
 
-        com.ultraschemer.microweb.entity.Runtime runtime = new com.ultraschemer.microweb.entity.Runtime();
+            com.ultraschemer.microweb.entity.Runtime runtime = new com.ultraschemer.microweb.entity.Runtime();
 
-        runtime.setName(name);
-        runtime.setValue(value);
+            runtime.setName(name);
+            runtime.setValue(value);
 
-        try {
-            session.persist(runtime);
-            transaction.commit();
-        } catch(PersistenceException cve) {
-            transaction.begin();
-            // Try to update an existent variable:
-            session.createQuery("update Runtime set value = :value where name = :name")
-                    .setParameter("name", name)
-                    .setParameter("value", value)
-                    .executeUpdate();
+            try {
+                session.persist(runtime);
+                transaction.commit();
+            } catch (PersistenceException cve) {
+                transaction.begin();
+                // Try to update an existent variable:
+                session.createQuery("update Runtime set value = :value where name = :name")
+                        .setParameter("name", name)
+                        .setParameter("value", value)
+                        .executeUpdate();
 
-            session.getTransaction().commit();
+                session.getTransaction().commit();
+            }
+        } catch (PersistenceException pe) {
+            throw new UnableToWriteRuntimeException("Unable to write runtime variable: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
     }
 
@@ -51,20 +58,23 @@ public class Runtime {
      * @param name Variable name.
      * @return The current variable value.
      */
-    public static String read(String name) {
-        Session session = EntityUtil.openTransactionSession();
+    public static String read(String name) throws UnableToReadRuntimeException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            List<com.ultraschemer.microweb.entity.Runtime> runtimes =
+                    session.createQuery("from Runtime where name = :name",
+                            com.ultraschemer.microweb.entity.Runtime.class)
+                            .setParameter("name", name).list();
 
-        @SuppressWarnings("unchecked")
-        List<com.ultraschemer.microweb.entity.Runtime> runtimes = session.createQuery("from Runtime where name = :name")
-                .setParameter("name", name).list();
+            if (runtimes.size() == 0) {
+                return "";
+            }
 
-        if(runtimes.size() == 0) {
-            return "";
+            com.ultraschemer.microweb.entity.Runtime runtime = runtimes.iterator().next();
+
+            return runtime.getValue();
+        } catch (PersistenceException pe) {
+            throw new UnableToReadRuntimeException("Unable to read runtime variable: " + pe.getLocalizedMessage() +
+                    "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
-
-        com.ultraschemer.microweb.entity.Runtime runtime = runtimes.iterator().next();
-
-        session.close();
-        return runtime.getValue();
     }
 }

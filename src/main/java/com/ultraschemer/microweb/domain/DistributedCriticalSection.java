@@ -1,14 +1,15 @@
 package com.ultraschemer.microweb.domain;
 
 import com.google.common.base.Throwables;
-import com.ultraschemer.microweb.domain.error.UnableToEnterCriticalSection;
+import com.ultraschemer.microweb.domain.error.CriticalSectionAcquiringFailureException;
+import com.ultraschemer.microweb.domain.error.CriticalSectionExitFailureException;
+import com.ultraschemer.microweb.domain.error.UnableToEnterCriticalSectionException;
+import com.ultraschemer.microweb.domain.error.UnableToExitCriticalSectionException;
 import com.ultraschemer.microweb.entity.LockControl;
+import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.utils.MachineIdentification;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
-import com.ultraschemer.microweb.domain.error.CriticalSectionAcquiringFailureException;
-import com.ultraschemer.microweb.domain.error.CriticalSectionExitFailureException;
-import com.ultraschemer.microweb.persistence.EntityUtil;
 
 import javax.persistence.PersistenceException;
 import java.util.Calendar;
@@ -148,7 +149,7 @@ public class DistributedCriticalSection {
      *
      * @return If raiseException = false, the return value is false if the critical section is not acquired. If true, the critical section has been acquired.
      */
-    public boolean enterCriticalSection() throws CriticalSectionAcquiringFailureException, UnableToEnterCriticalSection {
+    public boolean enterCriticalSection() throws CriticalSectionAcquiringFailureException, UnableToEnterCriticalSectionException {
         try(Session session = EntityUtil.openTransactionSession()) {
             Transaction transaction = session.getTransaction();
 
@@ -214,7 +215,7 @@ public class DistributedCriticalSection {
                 }
             }
         } catch(PersistenceException pe) {
-            throw new UnableToEnterCriticalSection("It wasn't possible to enter in the critical section: " +
+            throw new UnableToEnterCriticalSectionException("It wasn't possible to enter in the critical section: " +
                     pe.getLocalizedMessage() + "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
 
@@ -230,31 +231,34 @@ public class DistributedCriticalSection {
      * Exit from critical section, releasing it to other process.
      * @return If raiseException = true, then if the return is false, it means the critical section has a failure on it's release. Otherwise, the critical section has been exited correctly.
      */
-    public boolean exitCriticalSection() throws CriticalSectionExitFailureException {
-        Session session = EntityUtil.openTransactionSession();
-        String queryText = "Update LockControl set status = :status, expiration = :expiration " +
-                " where name = :name and status = :blocked_status and owner = :owner";
-        int updates =
-                session.createQuery(queryText)
-                    .setParameter("status", "F")
-                    .setParameter("expiration", new Date())
-                    .setParameter("name", name)
-                    .setParameter("blocked_status", "L")
-                    .setParameter("owner", owner)
-                    .executeUpdate();
+    public boolean exitCriticalSection() throws CriticalSectionExitFailureException, UnableToExitCriticalSectionException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            String queryText = "Update LockControl set status = :status, expiration = :expiration " +
+                    " where name = :name and status = :blocked_status and owner = :owner";
+            int updates =
+                    session.createQuery(queryText)
+                            .setParameter("status", "F")
+                            .setParameter("expiration", new Date())
+                            .setParameter("name", name)
+                            .setParameter("blocked_status", "L")
+                            .setParameter("owner", owner)
+                            .executeUpdate();
 
-        session.getTransaction().commit();
-        session.close();
+            session.getTransaction().commit();
 
-        if(updates > 0) {
-            return true;
-        }
+            if (updates > 0) {
+                return true;
+            }
 
-        if(raiseException) {
-            String message = "It has been not possible to release critical section with name: " +
-                    name +
-                    ". Probably the critical section already expired and has not been acquired.";
-            throw new CriticalSectionExitFailureException(message);
+            if (raiseException) {
+                String message = "It has been not possible to release critical section with name: " +
+                        name +
+                        ". Probably the critical section already expired and has not been acquired.";
+                throw new CriticalSectionExitFailureException(message);
+            }
+        } catch(PersistenceException pe) {
+            throw new UnableToExitCriticalSectionException("It wasn't possible to exit the critical section :" +
+                    pe.getLocalizedMessage() + "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
         }
 
         return false;

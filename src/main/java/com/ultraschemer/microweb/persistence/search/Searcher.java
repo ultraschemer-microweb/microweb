@@ -109,7 +109,7 @@ public class Searcher<T> {
             List<T> tss = query.list();
             ts = tss;
         } catch (Exception e) {
-            String msg = "Erro ao fazer interpretação ou a execução de query string: " + e.getLocalizedMessage() +
+            String msg = "Error trying to evaluate the query string: " + e.getLocalizedMessage() +
                     "\nStack-Trace: " + Throwables.getStackTraceAsString(e);
             throw new QueryParseException(msg);
         }
