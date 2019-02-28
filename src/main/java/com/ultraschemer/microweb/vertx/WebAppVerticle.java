@@ -4,6 +4,8 @@ import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServer;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.web.Router;
 import com.ultraschemer.microweb.domain.ServiceConfiguration;
 
@@ -103,7 +105,14 @@ public abstract class WebAppVerticle extends AbstractVerticle {
             }
         }, res -> {
             if (res.succeeded()) {
-                vertx.createHttpServer().requestHandler(getRouter()::accept).listen(getHttpPort());
+                HttpServer server = vertx.createHttpServer();
+
+                // Registra o handler genérico sobre todos as chamadas de WebSockets:
+                server.websocketHandler(this::webSocketInitialization);
+
+                // Registras as chamadas padrão sobre as rotas HTTP:
+                server.requestHandler(getRouter()::accept).listen(getHttpPort());
+
                 System.out.println("HTTP Server started on port " + getHttpPort());
             } else {
                 System.out.println("Configuration error: " + res.cause().getMessage());
@@ -116,4 +125,9 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * registrations.
      */
     public abstract void initialization() throws Exception;
+
+    /**
+     * Method that can be used to implement a WebSocket hangler:
+     */
+    public void webSocketInitialization(ServerWebSocket webSocket) { /* Empty: for override */  }
 }
