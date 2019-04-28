@@ -4,17 +4,20 @@ public class StandardMessage {
     private String message;
     private String code;
     private int httpStatus;
+    private String stackTrace;
 
     public StandardMessage() {
         this.code = "";
         this.httpStatus = 200;
         this.message = "Sucesso.";
+        this.stackTrace = "";
     }
 
-    public StandardMessage(String code, int httpStatus, String message) {
+    public StandardMessage(String code, int httpStatus, String message, String stackTrace) {
         this.code = code;
         this.httpStatus = httpStatus;
         this.message = message;
+        this.stackTrace = stackTrace;
     }
 
     public String getMessage() {
@@ -39,5 +42,13 @@ public class StandardMessage {
 
     public void setHttpStatus(int httpStatus) {
         this.httpStatus = httpStatus;
+    }
+
+    public String getStackTrace() {
+        return stackTrace;
+    }
+
+    public void setStackTrace(String stackTrace) {
+        this.stackTrace = stackTrace;
     }
 }

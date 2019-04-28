@@ -1,5 +1,6 @@
 package com.ultraschemer.microweb.error;
 
+import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.Message;
 
 /**
@@ -37,6 +38,7 @@ public class StandardException extends Exception {
         b.setCode(getCode());
         b.setHttpStatus(getHttpStatus());
         b.setMessage(getMessage());
+        b.setStackTrace(Throwables.getStackTraceAsString(this));
 
         return b;
     }

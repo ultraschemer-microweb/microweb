@@ -7,7 +7,7 @@ public class Message extends StandardMessage implements Serializable {
         super();
     }
 
-    public Message(String code, int httpStatus, String message) {
-        super(code, httpStatus, message);
+    public Message(String code, int httpStatus, String message, String stackTrace) {
+        super(code, httpStatus, message, stackTrace);
     }
 }
