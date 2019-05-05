@@ -31,7 +31,7 @@ public class LogoffController implements BasicController {
 
             if(error == null) {
                 Message msg = new Message();
-                msg.setHttpStatus(500);
+                msg.setHttpStatus(200);
                 msg.setCode("154840d6-edd4-4636-a2fb-a2c34080abd3");
                 msg.setMessage("Usuário saiu do sistema com sucesso.");
                 response.setStatusCode(msg.getHttpStatus()).end(Json.encode(msg));
