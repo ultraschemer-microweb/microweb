@@ -11,9 +11,6 @@ buildscript {
             url "https://plugins.gradle.org/m2/"
         }
     }
-    dependencies {
-        classpath "gradle.plugin.aspectj:gradle-aspectj:0.1.6"
-    }
 }
 
 plugins {
@@ -42,12 +39,7 @@ repositories {
 }
 
 allprojects {
-    ext {
-        aspectjVersion = '1.9.1'
-    }
-
     apply plugin: 'java'
-    apply plugin: 'aspectj.gradle'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -76,8 +68,6 @@ dependencies {
     compile group: 'org.apache.logging.log4j', name: 'log4j', version: '2.11.1'
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     compile group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
-    compile group: 'org.aspectj', name: 'aspectjrt', version: '1.9.1'
-    compile group: 'org.aspectj', name: 'aspectjweaver', version: '1.9.1'
 
     // Add Hibernate packages, as Hibernate homepage advised:
     compile group: 'org.hibernate', name: 'hibernate-core', version: '5.4.0.Final'
@@ -102,9 +92,6 @@ shadowJar {
 run {
     args = ['run', mainVerticleName, "--launcher-class=$mainClassName"]
 }
-
-// Unecessary:
-// run.dependsOn build
 
 wrapper {
     gradleVersion = '4.0'
