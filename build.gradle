@@ -11,6 +11,9 @@ buildscript {
             url "https://plugins.gradle.org/m2/"
         }
     }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.0.0"
+    }
 }
 
 plugins {
@@ -21,7 +24,7 @@ plugins {
     id 'application'
 
     // Guava application to create a single jar with all dependencies:
-    id 'com.github.johnrengelman.shadow' version '2.0.1'
+    id 'com.github.johnrengelman.shadow' version '5.0.0'
 }
 
 ext {
@@ -40,7 +43,8 @@ repositories {
 
 allprojects {
     apply plugin: 'java'
-
+    apply plugin: "com.github.johnrengelman.shadow"
+    
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
 }
@@ -83,7 +87,6 @@ dependencies {
 }
 
 shadowJar {
-    classifier = 'all'
     mergeServiceFiles {
         include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
     }
