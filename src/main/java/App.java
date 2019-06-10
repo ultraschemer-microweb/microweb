@@ -1,7 +1,9 @@
 import com.ultraschemer.microweb.controller.AuthorizationFilter;
 import com.ultraschemer.microweb.controller.LoginController;
 import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.domain.JwtSecurityManager;
 import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
 import io.vertx.core.http.HttpMethod;
 
@@ -13,6 +15,16 @@ public class App extends WebAppVerticle {
     public void initialization() {
         // Verify the default user and the default role:
         UserManagement.initializeRoot();
+
+        // Initialize JWT symmetric security keys:
+        try {
+            JwtSecurityManager.initializeSKey();
+        } catch(StandardException e) {
+            // No exception is waited here:
+            e.printStackTrace();
+            System.out.println("Exiting.");
+            System.exit(-1);
+        }
 
         // Registra os filtros de inicialização:
         registerFilter(new AuthorizationFilter());

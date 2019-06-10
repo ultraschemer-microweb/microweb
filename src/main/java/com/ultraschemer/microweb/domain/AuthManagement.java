@@ -7,6 +7,7 @@ import com.ultraschemer.microweb.domain.error.*;
 import com.ultraschemer.microweb.entity.AccessToken;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.utils.Security;
 import org.hibernate.Session;
 
 import javax.persistence.NoResultException;
@@ -41,14 +42,7 @@ public class AuthManagement {
      * @return The generated access token.
      */
     private static String generateAccessToken() {
-        final String characterTable = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
-        int size = ThreadLocalRandom.current().nextInt(5, 65);
-        StringBuffer tokenBuffer = new StringBuffer();
-        for(int i=0; i<size; i++) {
-            int pos = ThreadLocalRandom.current().nextInt(0, 85);
-            tokenBuffer.append(characterTable.charAt(pos));
-        }
-        return tokenBuffer.toString();
+        return Security.randomToken();
     }
 
     /**

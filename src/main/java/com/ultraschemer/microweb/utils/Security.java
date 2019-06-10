@@ -8,6 +8,7 @@ import javax.crypto.spec.PBEKeySpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Class with the routines to secure password storage and validation. Other security routines can be put here.
@@ -79,5 +80,16 @@ public class Security {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    public static String randomToken() {
+        final String characterTable = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.-:+=^!/*?&<>()[]{}@%$#";
+        int size = ThreadLocalRandom.current().nextInt(5, 65);
+        StringBuffer tokenBuffer = new StringBuffer();
+        for(int i=0; i<size; i++) {
+            int pos = ThreadLocalRandom.current().nextInt(0, 85);
+            tokenBuffer.append(characterTable.charAt(pos));
+        }
+        return tokenBuffer.toString();
     }
 }

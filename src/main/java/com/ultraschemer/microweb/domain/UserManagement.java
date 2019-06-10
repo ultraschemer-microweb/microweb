@@ -26,7 +26,8 @@ public class UserManagement {
 
         try (Session session = EntityUtil.openTransactionSession()) {
             // Load, then, the roles the user assumes (Obs.: joins are avoided to reduce database query locking):
-            List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId", User_Role.class)
+            @SuppressWarnings("unchecked")
+            List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId")
                     .setParameter("userId", userId)
                     .list();
 
@@ -93,7 +94,6 @@ public class UserManagement {
             UserRole userRole = new UserRole();
             userRole.setId(r.getId().toString());
             userRole.setName(r.getName());
-            userRoles.add(userRole);
         }
 
         uData.setRoles(userRoles);
@@ -130,7 +130,6 @@ public class UserManagement {
             UserRole userRole = new UserRole();
             userRole.setId(r.getId().toString());
             userRole.setName(r.getName());
-            userRoles.add(userRole);
         }
 
         uData.setRoles(userRoles);
