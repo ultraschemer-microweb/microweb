@@ -1,5 +1,7 @@
 package com.ultraschemer.microweb.controller;
 
+import com.ultraschemer.microweb.domain.JwtSecurityManager;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Route;
@@ -12,6 +14,12 @@ import com.ultraschemer.microweb.error.UnknownException;
 import com.ultraschemer.microweb.vertx.BasicController;
 
 public class LoginController implements BasicController {
+    private Vertx vertx;
+
+    public LoginController(Vertx vertx) {
+        this.vertx = vertx;
+    }
+
     public void evaluate(Route route) {
         // Carrega algum dado do banco de dados, em um "blocking handler":
         route.handler(BodyHandler.create()).blockingHandler(routingContext -> {
@@ -20,6 +28,8 @@ public class LoginController implements BasicController {
 
             try {
                 AuthorizationData authorizationData = AuthManagement.authenticate(authenticationData);
+                JwtSecurityManager.generateBearer(this.vertx, authorizationData);
+
                 routingContext.put("data", authorizationData);
             } catch(Exception e) {
                 routingContext.put("error", e);

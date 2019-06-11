@@ -111,7 +111,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
                 server.websocketHandler(this::webSocketInitialization);
 
                 // Registras as chamadas padrão sobre as rotas HTTP:
-                server.requestHandler(getRouter()::accept).listen(getHttpPort());
+                server.requestHandler(getRouter()).listen(getHttpPort());
 
                 System.out.println("HTTP Server started on port " + getHttpPort());
             } else {

@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 public class AuthorizationData implements Serializable {
     private String accessToken;
+    private String bearer;
     private int ttl;
 
     public String getAccessToken() {
@@ -20,5 +21,13 @@ public class AuthorizationData implements Serializable {
 
     public void setTtl(int ttl) {
         this.ttl = ttl;
+    }
+
+    public String getBearer() {
+        return bearer;
+    }
+
+    public void setBearer(String bearer) {
+        this.bearer = bearer;
     }
 }

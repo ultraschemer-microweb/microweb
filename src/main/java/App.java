@@ -27,10 +27,10 @@ public class App extends WebAppVerticle {
         }
 
         // Registra os filtros de inicialização:
-        registerFilter(new AuthorizationFilter());
+        registerFilter(new AuthorizationFilter(this.getVertx()));
 
         // Registra os controllers:
-        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.POST, "/v0/login", new LoginController(this.getVertx()));
         registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
 
         // Registra os filtros de finalização:
