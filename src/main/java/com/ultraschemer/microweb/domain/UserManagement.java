@@ -87,6 +87,7 @@ public class UserManagement {
         UserData uData = new UserData();
         uData.setName(user.getName());
         uData.setId(user.getId().toString());
+        uData.setAlias(user.getAlias());
 
         List<Role> roles = loadRolesFromUser(user.getId());
         List<UserRole> userRoles = new ArrayList<>(roles.size());
@@ -124,6 +125,7 @@ public class UserManagement {
         UserData uData = new UserData();
         uData.setName(user.getName());
         uData.setId(user.getId().toString());
+        uData.setAlias(user.getAlias());
 
         List<Role> roles = loadRolesFromUser(user.getId());
         List<UserRole> userRoles = new ArrayList<>(roles.size());
