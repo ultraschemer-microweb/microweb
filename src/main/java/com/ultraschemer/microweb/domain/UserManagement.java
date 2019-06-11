@@ -94,6 +94,7 @@ public class UserManagement {
             UserRole userRole = new UserRole();
             userRole.setId(r.getId().toString());
             userRole.setName(r.getName());
+            userRoles.add(userRole);
         }
 
         uData.setRoles(userRoles);
@@ -130,6 +131,7 @@ public class UserManagement {
             UserRole userRole = new UserRole();
             userRole.setId(r.getId().toString());
             userRole.setName(r.getName());
+            userRoles.add(userRole);
         }
 
         uData.setRoles(userRoles);
