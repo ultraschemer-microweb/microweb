@@ -5,6 +5,7 @@ import com.ultraschemer.microweb.domain.JwtSecurityManager;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.error.UnknownException;
+import com.ultraschemer.microweb.vertx.AsyncExecutor;
 import com.ultraschemer.microweb.vertx.BasicController;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerRequest;
@@ -15,11 +16,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import java.util.HashSet;
-import java.util.function.Consumer;
-
-interface AuthorizationExecutor {
-    void execute() throws Exception;
-}
 
 public class AuthorizationFilter implements BasicController {
     private HashSet<String> unfilteredPaths;
@@ -48,7 +44,7 @@ public class AuthorizationFilter implements BasicController {
         unfilteredPaths.add(path);
     }
 
-    private void executeHandler(RoutingContext routingContext, AuthorizationExecutor consumer) {
+    private void executeHandler(RoutingContext routingContext, AsyncExecutor consumer) {
         try {
             consumer.execute();
         } catch (StandardException se) {
