@@ -52,7 +52,7 @@ public abstract class SimpleController implements BasicController {
     }
 
     public abstract void executeEvaluation(RoutingContext routingContext, HttpServerResponse response)
-            throws StandardException;
+            throws Throwable;
 
     protected String getContentType() {
         return contentType;
