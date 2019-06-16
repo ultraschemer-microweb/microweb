@@ -28,8 +28,8 @@ public class UserManagement {
 
         try (Session session = EntityUtil.openTransactionSession()) {
             // Load, then, the roles the user assumes (Obs.: joins are avoided to reduce database query locking):
-            @SuppressWarnings("unchecked")
-            List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId")
+            List<User_Role> userRoles =
+                    session.createQuery("from User_Role where userId = :userId", User_Role.class)
                     .setParameter("userId", userId)
                     .list();
 
@@ -72,8 +72,7 @@ public class UserManagement {
 
         try (Session session = EntityUtil.openTransactionSession()) {
             // Load user data:
-            @SuppressWarnings("unchecked")
-            List<User> users = (List<User>) session.createQuery("from User where name = :name")
+            List<User> users = session.createQuery("from User where name = :name", User.class)
                     .setParameter("name", name)
                     .list();
 
@@ -108,8 +107,7 @@ public class UserManagement {
 
         try (Session session = EntityUtil.openTransactionSession()) {
             // Load user data:
-            @SuppressWarnings("unchecked")
-            List<User> users = session.createQuery("from User where id = :id")
+            List<User> users = session.createQuery("from User where id = :id", User.class)
                     .setParameter("id", UUID.fromString(id))
                     .list();
             if (users.size() != 1) {
