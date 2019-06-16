@@ -201,4 +201,120 @@ public class UserManagement {
             e.printStackTrace();
         }
     }
+	
+	public static void updateUserPassword(String strUserId, String userName, String currentPasswd, String passwd,
+                                          String passwdConfirmation)
+            throws StandardException, InvalidKeySpecException, NoSuchAlgorithmException
+    {
+        UUID userId = UUID.fromString(strUserId);
+
+        // Verify parameter data:
+        if(passwd.equals(passwdConfirmation)) {
+            AuthenticationData authData = new AuthenticationData();
+            authData.setName(userName);
+            authData.setPassword(currentPasswd);
+
+            // If this call doesn't throw an exception, then the user password is valid:
+            AuthManagement.authenticate(authData);
+        } else {
+            throw new UserPassNotEqualsException("Password and its confirmation don't match.");
+        }
+
+        try(Session session = EntityUtil.openTransactionSession()) {
+            session.createQuery("update User set password = :passwd where id = :id")
+                    .setParameter("passwd", Security.hashade(passwd))
+                    .setParameter("id", userId)
+                    .executeUpdate();
+            session.getTransaction().commit();
+        } catch(PersistenceException pe) {
+            throw new UpdateUserPasswordException("Unable to update password to user: " + pe.getLocalizedMessage());
+        }
+    }
+
+    public static void registerSimpleUser(CreateUserData u, String roleName) throws StandardException{
+        Validator.ensure(u);
+
+        try(Session session = EntityUtil.openTransactionSession()) {
+            User newU = new User();
+            User_Role newUR = new User_Role();
+            Role role = session.createQuery("from Role where name = :name", Role.class).getSingleResult();
+
+            // Create new user:
+            newU.setName(u.getName());
+            newU.setAlias(u.getAlias());
+            newU.setPassword(Security.hashade(u.getPassword()));
+            newU.setStatus("new");
+            session.persist(newU);
+
+            // Link the user to his/her role:
+            newUR.setUserId(newU.getId());
+            newUR.setRoleId(role.getId());
+            session.persist(newUR);
+
+            // PErsist data in database:
+            session.getTransaction().commit();
+
+        } catch(Exception pe) {
+            throw new SimpleUserRegistrationException("Unable to register user: " + pe.getLocalizedMessage());
+        }
+    }
+
+    public static void setRoleToUser(String strUserId, String strRoleId) throws StandardException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            User_Role newUR = new User_Role();
+
+            newUR.setUserId(UUID.fromString(strUserId));
+            newUR.setRoleId(UUID.fromString(strRoleId));
+
+            session.persist(newUR);
+            session.getTransaction().commit();
+        } catch(PersistenceException pe) {
+            throw new UserRoleSetException("Unable to set role to user: " + pe.getLocalizedMessage());
+        }
+    }
+
+    public static void updateUserName(String strUserId, String userName) throws StandardException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            UUID userId = UUID.fromString(strUserId);
+            session.createQuery("update User set name = :name where id = :id")
+                    .setParameter("name", userName)
+                    .setParameter("id", userId)
+                    .executeUpdate();
+            session.getTransaction().commit();
+        } catch(PersistenceException pe) {
+            throw new UpdateUserNameException("Unable to update name to user: " + pe.getLocalizedMessage());
+        }
+    }
+
+    public static void updateUserAlias(String strUserId, String userAlias) throws StandardException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            UUID userId = UUID.fromString(strUserId);
+            session.createQuery("update User set alias = :alias where id = :id")
+                    .setParameter("alias", userAlias)
+                    .setParameter("id", userId)
+                    .executeUpdate();
+            session.getTransaction().commit();
+        } catch(PersistenceException pe) {
+            throw new UpdateUserAliasException("Unable to update name to user: " + pe.getLocalizedMessage());
+    }
+    }
+
+    public static List<UserData> loadUsers(int count, int offset) throws StandardException {
+        try(Session session = EntityUtil.openTransactionSession()) {
+            List<UUID> ids = session.createQuery("select id from User", UUID.class)
+                    .setFirstResult(offset)
+                    .setMaxResults(count)
+                    .list();
+
+            List<UserData> returnData = new ArrayList<>(ids.size());
+
+            for(UUID id: ids) {
+                returnData.add(UserManagement.loadUserBySecureId(id.toString()));
+            }
+
+            return returnData;
+        } catch(PersistenceException pe) {
+            throw new LoadUsersException("Unable to load users: " + pe.getLocalizedMessage());
+        }
+    }
 }
