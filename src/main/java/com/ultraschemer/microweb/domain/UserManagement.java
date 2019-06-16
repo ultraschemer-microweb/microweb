@@ -1,21 +1,23 @@
 package com.ultraschemer.microweb.domain;
 
 import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.controller.bean.CreateUserData;
+import com.ultraschemer.microweb.domain.bean.AuthenticationData;
 import com.ultraschemer.microweb.domain.bean.UserData;
 import com.ultraschemer.microweb.domain.bean.UserRole;
-import com.ultraschemer.microweb.domain.error.UnableToGetRolesFromUser;
-import com.ultraschemer.microweb.domain.error.UnableToLoadUserBySecureId;
-import com.ultraschemer.microweb.domain.error.UserAccessConfigurationException;
-import com.ultraschemer.microweb.domain.error.UserNotFoundException;
+import com.ultraschemer.microweb.domain.error.*;
 import com.ultraschemer.microweb.entity.Role;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.entity.User_Role;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.utils.Security;
+import com.ultraschemer.microweb.validation.Validator;
 import org.hibernate.Session;
 
 import javax.persistence.PersistenceException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,8 +66,6 @@ public class UserManagement {
      * @param name This is the user name.
      * @return The found user data, as a serializable bean.
      *
-     * @throws UserNotFoundException
-     * @throws UserAccessConfigurationException
      */
     public static UserData loadUserByName(String name) throws StandardException {
         User user;
@@ -150,7 +150,9 @@ public class UserManagement {
         if(nameOrId.matches(uuidPattern)) {
             try {
                 return loadUserBySecureId(nameOrId);
-            } catch (UserNotFoundException unfe) { }
+            } catch (UserNotFoundException unfe) {
+                unfe.printStackTrace();
+            }
         }
 
         return loadUserByName(nameOrId);

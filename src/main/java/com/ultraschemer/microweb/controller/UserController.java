@@ -1,4 +1,4 @@
-package com.ibgateway.controller;
+package com.ultraschemer.microweb.controller;
 
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.domain.bean.UserData;

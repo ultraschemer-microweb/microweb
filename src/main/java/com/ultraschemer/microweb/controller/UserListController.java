@@ -1,6 +1,5 @@
-package com.ibgateway.controller;
+package com.ultraschemer.microweb.controller;
 
-import com.ibgateway.domain.IBGatewayUserManagement;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.domain.bean.Message;
 import com.ultraschemer.microweb.domain.bean.UserData;
@@ -36,7 +35,7 @@ public class UserListController extends SimpleController {
             assert count != null;
             assert offset != null;
 
-            List<UserData> users = IBGatewayUserManagement.loadUsers(Integer.parseInt(count), Integer.parseInt(offset));
+            List<UserData> users = UserManagement.loadUsers(Integer.parseInt(count), Integer.parseInt(offset));
             response.setStatusCode(200).end(Json.encode(users));
         } else {
             UserData user = UserManagement.loadUser(userIdOrName);

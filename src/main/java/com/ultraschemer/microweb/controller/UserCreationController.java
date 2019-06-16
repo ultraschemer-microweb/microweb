@@ -1,8 +1,7 @@
-package com.ibgateway.controller;
+package com.ultraschemer.microweb.controller;
 
-import com.ibgateway.controller.bean.CreateUserData;
-import com.ibgateway.controller.bean.NewUserData;
-import com.ibgateway.domain.IBGatewayUserManagement;
+import com.ultraschemer.microweb.controller.bean.CreateUserData;
+import com.ultraschemer.microweb.controller.bean.NewUserData;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.domain.bean.UserData;
 import com.ultraschemer.microweb.vertx.SimpleController;
@@ -22,14 +21,14 @@ public class UserCreationController extends SimpleController {
         String role = newUserData.getRoles().get(0);
 
         // Register the user, with the first given role:
-        IBGatewayUserManagement.registerSimpleUser(userData, role);
+        UserManagement.registerSimpleUser(userData, role);
 
         // Assign the other given roles to the user:
         UserData newUser = UserManagement.loadUser(userData.getName());
         newUserData.getRoles().remove(role);
 
         for(String roleName: newUserData.getRoles()) {
-            IBGatewayUserManagement.setRoleToUser(newUser.getId(), roleName);
+            UserManagement.setRoleToUser(newUser.getId(), roleName);
         }
 
         response.setStatusCode(200);

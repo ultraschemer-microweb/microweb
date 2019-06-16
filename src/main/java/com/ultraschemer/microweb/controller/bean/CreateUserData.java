@@ -1,4 +1,4 @@
-package com.ibgateway.controller.bean;
+package com.ultraschemer.microweb.controller.bean;
 
 import com.ultraschemer.microweb.domain.bean.UserRole;
 import net.sf.oval.constraint.*;

@@ -1,7 +1,7 @@
-package com.ibgateway.domain;
+package com.ultraschemer.microweb.domain;
 
-import com.ibgateway.domain.error.LoadRoleByIdException;
-import com.ibgateway.domain.error.LoadRoleByNameException;
+import com.ultraschemer.microweb.domain.error.LoadRoleByIdException;
+import com.ultraschemer.microweb.domain.error.LoadRoleByNameException;
 import com.ultraschemer.microweb.entity.Role;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.hibernate.Session;

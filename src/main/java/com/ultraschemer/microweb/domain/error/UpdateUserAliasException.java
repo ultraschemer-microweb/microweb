@@ -1,4 +1,4 @@
-package com.ibgateway.domain.error;
+package com.ultraschemer.microweb.domain.error;
 
 import com.ultraschemer.microweb.error.StandardException;
 

@@ -1,6 +1,4 @@
-import com.ultraschemer.microweb.controller.AuthorizationFilter;
-import com.ultraschemer.microweb.controller.LoginController;
-import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.controller.*;
 import com.ultraschemer.microweb.domain.JwtSecurityManager;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.error.StandardException;

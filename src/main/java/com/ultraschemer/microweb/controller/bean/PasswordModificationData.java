@@ -1,4 +1,4 @@
-package com.ibgateway.controller.bean;
+package com.ultraschemer.microweb.controller.bean;
 
 import net.sf.oval.constraint.EqualToField;
 import net.sf.oval.constraint.NotEmpty;

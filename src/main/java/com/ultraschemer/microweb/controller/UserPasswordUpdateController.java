@@ -1,7 +1,7 @@
-package com.ibgateway.controller;
+package com.ultraschemer.microweb.controller;
 
-import com.ibgateway.controller.bean.PasswordModificationData;
-import com.ibgateway.domain.IBGatewayUserManagement;
+import com.ultraschemer.microweb.controller.bean.PasswordModificationData;
+import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.domain.bean.Message;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.validation.Validator;
@@ -28,7 +28,7 @@ public class UserPasswordUpdateController extends SimpleController {
         Validator.ensure(passwordData);
 
         // Call the business rule which change the user password:
-        IBGatewayUserManagement.updateUserPassword(user.getId().toString(), user.getName(),
+        UserManagement.updateUserPassword(user.getId().toString(), user.getName(),
                 passwordData.getCurrentPassword(), passwordData.getNewPassword(),
                 passwordData.getNewPasswordConfirmation());
 
