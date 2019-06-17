@@ -10,10 +10,10 @@ public class CreateUserData implements Serializable {
     /**
      * Unique identifier to the user.
      */
-    @NotNull
-    @NotEmpty
-    @Length(min = 5, max = 128)
-    private String id;
+    // @NotNull
+    // @NotEmpty
+    // @Length(min = 5, max = 128)
+    // private String id;
 
     /**
      * User name.
@@ -28,7 +28,6 @@ public class CreateUserData implements Serializable {
      */
     @NotNull
     @NotEmpty
-    @Email
     private String alias;
 
     /**
@@ -51,15 +50,15 @@ public class CreateUserData implements Serializable {
     /**
      * User roles in the system - this data is important to evaluate the system access control.
      */
-    private List<UserRole> roles;
+    // private List<UserRole> roles;
 
-    public String getId() {
-        return id;
-    }
+    // public String getId() {
+    //     return id;
+    // }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    // public void setId(String id) {
+    //     this.id = id;
+    // }
 
     public String getName() {
         return name;
@@ -69,13 +68,13 @@ public class CreateUserData implements Serializable {
         this.name = name;
     }
 
-    public List<UserRole> getRoles() {
-        return roles;
-    }
+    // public List<UserRole> getRoles() {
+    //     return roles;
+    // }
 
-    public void setRoles(List<UserRole> roles) {
-        this.roles = roles;
-    }
+    // public void setRoles(List<UserRole> roles) {
+    //     this.roles = roles;
+    // }
 
     public String getAlias() {
         return alias;

@@ -1,5 +1,6 @@
 import com.ultraschemer.microweb.controller.*;
 import com.ultraschemer.microweb.domain.JwtSecurityManager;
+import com.ultraschemer.microweb.domain.RoleManagement;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
@@ -23,6 +24,9 @@ public class App extends WebAppVerticle {
             System.out.println("Exiting.");
             System.exit(-1);
         }
+
+        // Initialize additional roles:
+        RoleManagement.initializeDefault();
 
         // Registra os filtros de inicialização:
         registerFilter(new AuthorizationFilter(this.getVertx()));

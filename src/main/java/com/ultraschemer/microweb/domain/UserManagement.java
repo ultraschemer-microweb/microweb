@@ -237,7 +237,8 @@ public class UserManagement {
         try(Session session = EntityUtil.openTransactionSession()) {
             User newU = new User();
             User_Role newUR = new User_Role();
-            Role role = session.createQuery("from Role where name = :name", Role.class).getSingleResult();
+            Role role = session.createQuery("from Role where name = :name", Role.class)
+                    .setParameter("name", roleName).getSingleResult();
 
             // Create new user:
             newU.setName(u.getName());
@@ -259,12 +260,15 @@ public class UserManagement {
         }
     }
 
-    public static void setRoleToUser(String strUserId, String strRoleId) throws StandardException {
+    public static void setRoleToUser(String strUserId, String roleName) throws StandardException {
         try(Session session = EntityUtil.openTransactionSession()) {
             User_Role newUR = new User_Role();
 
+            Role role = session.createQuery("from Role where name = :name", Role.class)
+                    .setParameter("name", roleName).getSingleResult();
+
             newUR.setUserId(UUID.fromString(strUserId));
-            newUR.setRoleId(UUID.fromString(strRoleId));
+            newUR.setRoleId(role.getId());
 
             session.persist(newUR);
             session.getTransaction().commit();

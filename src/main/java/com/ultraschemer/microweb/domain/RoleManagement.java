@@ -13,7 +13,7 @@ import java.util.UUID;
 
 public class RoleManagement {
     public static void initializeDefault() {
-        try(Session session = EntityUtil.openSession()) {
+        try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("user");
             session.persist(role);
@@ -21,7 +21,7 @@ public class RoleManagement {
         } catch (PersistenceException pe) {
             System.out.println("Default role already registered. Continuing...");
         }
-        try(Session session = EntityUtil.openSession()) {
+        try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("user-manager");
             session.persist(role);
@@ -29,7 +29,7 @@ public class RoleManagement {
         } catch (PersistenceException pe) {
             System.out.println("Default role already registered. Continuing...");
         }
-        try(Session session = EntityUtil.openSession()) {
+        try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("system-manager");
             session.persist(role);
