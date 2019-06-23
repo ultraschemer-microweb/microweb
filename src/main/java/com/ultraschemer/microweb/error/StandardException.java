@@ -25,6 +25,12 @@ public class StandardException extends Exception {
         this.httpStatus = httpStatus;
     }
 
+    public StandardException(String code, int httpStatus, String message, Throwable cause) {
+        super(message, cause);
+        this.code = "ERROR:" + code;
+        this.httpStatus = httpStatus;
+    }
+
     public int getHttpStatus() {
         return httpStatus;
     }
