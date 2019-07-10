@@ -23,8 +23,7 @@ create table entity_history (
   entity_name varchar(1024) not null,
   entity_id uuid not null,
   entity_data jsonb not null,
-  create_date timestamp with time zone not null default now(),
-  constraint entity_history_name_id_uidx unique(entity_name, entity_id)
+  create_date timestamp with time zone not null default now()
 );
 
 --
