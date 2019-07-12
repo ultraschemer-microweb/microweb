@@ -2,12 +2,13 @@ package com.ultraschemer.microweb.domain.bean;
 
 import java.io.Serializable;
 import java.util.List;
+import java.util.UUID;
 
 public class UserData implements Serializable {
     /**
      * Unique identifier to the user.
      */
-    private String id;
+    private UUID id;
 
     /**
      * User name.
@@ -24,11 +25,11 @@ public class UserData implements Serializable {
      */
     private List<UserRole> roles;
 
-    public String getId() {
+    public UUID getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public void setId(UUID id) {
         this.id = id;
     }
 

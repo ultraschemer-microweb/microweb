@@ -85,7 +85,7 @@ public class UserManagement {
 
         UserData uData = new UserData();
         uData.setName(user.getName());
-        uData.setId(user.getId().toString());
+        uData.setId(user.getId());
         uData.setAlias(user.getAlias());
 
         List<Role> roles = loadRolesFromUser(user.getId());
@@ -122,7 +122,7 @@ public class UserManagement {
 
         UserData uData = new UserData();
         uData.setName(user.getName());
-        uData.setId(user.getId().toString());
+        uData.setId(user.getId());
         uData.setAlias(user.getAlias());
 
         List<Role> roles = loadRolesFromUser(user.getId());
@@ -260,14 +260,14 @@ public class UserManagement {
         }
     }
 
-    public static void setRoleToUser(String strUserId, String roleName) throws StandardException {
+    public static void setRoleToUser(UUID userId, String roleName) throws StandardException {
         try(Session session = EntityUtil.openTransactionSession()) {
             User_Role newUR = new User_Role();
 
             Role role = session.createQuery("from Role where name = :name", Role.class)
                     .setParameter("name", roleName).getSingleResult();
 
-            newUR.setUserId(UUID.fromString(strUserId));
+            newUR.setUserId(userId);
             newUR.setRoleId(role.getId());
 
             session.persist(newUR);
