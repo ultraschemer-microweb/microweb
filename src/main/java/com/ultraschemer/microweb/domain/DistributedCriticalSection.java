@@ -48,7 +48,7 @@ public class DistributedCriticalSection {
     public DistributedCriticalSection(String name) {
         this.expiration = 2;
         this.wait = 5;
-        this.raiseException = false;
+        this.raiseException = true;
         this.name = name;
         this.owner = MachineIdentification.getFullTreadIdentification();
 
