@@ -102,8 +102,8 @@ public class AuthorizationFilter implements BasicController {
                         } else {
                             // Bearer inválido: Verifica a token de autorização:
                             String token = request.getHeader("Microweb-Access-Token");
+                            finishAuthorization(routingContext, token);
                         }
-
                     } else {
                         // Verifica a token de autorização:
                         String token = request.getHeader("Microweb-Access-Token");
@@ -114,7 +114,6 @@ public class AuthorizationFilter implements BasicController {
                     String token = request.getHeader("Microweb-Access-Token");
                     finishAuthorization(routingContext, token);
                 }
-
             }
         });
     }
