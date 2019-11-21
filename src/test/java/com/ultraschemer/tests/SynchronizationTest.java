@@ -43,6 +43,7 @@ public class SynchronizationTest {
     @Test
     public void testBlockCriticalSection() {
         DistributedCriticalSection cs = new DistributedCriticalSection("TestCriticalSection");
+        cs.setRaiseException(false);
 
         // Um número aleatório de 1 a 5.
         int waitSeconds = ThreadLocalRandom.current().nextInt(1, 6);
@@ -78,6 +79,7 @@ public class SynchronizationTest {
             message.append(" - ");
             message.append(se.getMessage());
 
+            se.printStackTrace();
             fail(message.toString());
         }
 
