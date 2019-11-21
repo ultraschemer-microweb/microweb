@@ -10,6 +10,7 @@ import org.hibernate.Session;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Locale;
+import java.util.UUID;
 
 public class UserHelper {
     public static User generate(Person p, String password)
@@ -17,10 +18,14 @@ public class UserHelper {
         User u = new User();
 
         Faker faker =  new Faker(new Locale("pt-BR"));
-        u.setName(faker.name().firstName());
-        u.setAlias(faker.name().lastName());
+        u.setGivenName(faker.name().firstName());
+        u.setFamilyName(faker.name().lastName());
+        u.setName(u.getGivenName());
+        u.setAlias(u.getGivenName() + " " + u.getFamilyName());
         u.setPassword(Security.hashade(password));
         u.setPersonId(p.getId());
+        u.setCentralControlId(UUID.randomUUID());
+
         u.setStatus("new");
 
         return u;

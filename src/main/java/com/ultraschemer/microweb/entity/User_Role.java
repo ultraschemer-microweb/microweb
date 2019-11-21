@@ -1,6 +1,5 @@
 package com.ultraschemer.microweb.entity;
 
-import com.ultraschemer.microweb.persistence.Createable;
 import com.ultraschemer.microweb.persistence.Timeable;
 
 import javax.persistence.Column;
