@@ -3,6 +3,7 @@ package com.ultraschemer.microweb.vertx;
 import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.Message;
 import com.ultraschemer.microweb.error.StandardException;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Route;
@@ -13,6 +14,8 @@ public abstract class SimpleController implements BasicController {
     private String contentType;
     private int httpStatusCode;
     private String errorCode;
+    private HttpMethod method;
+    private String path;
 
     public SimpleController (int errorHttpStatusCode, String errorCode) {
         contentType = "application/json; charset=utf-8";
@@ -26,6 +29,22 @@ public abstract class SimpleController implements BasicController {
         this.errorCode = errorCode;
     }
 
+    /**
+     * Method used to implement "before actions" on controller
+     * @param context The HTTP Call context, providing information to initialization.
+     */
+    protected void beforeEvaluation(RoutingContext context) throws Throwable {
+        // To be overridden
+    }
+
+    /**
+     * Method used to implement "after actions" on controller
+     * @param context The Http call context, providing information to finalization.
+     */
+    protected void afterEvaluation(RoutingContext context) throws Throwable {
+        // To be overridden
+    }
+
     @Override
     public void evaluate(Route route) {
         route.handler(BodyHandler.create()).blockingHandler(routingContext -> {
@@ -33,7 +52,9 @@ public abstract class SimpleController implements BasicController {
             response.putHeader("Content-Type", contentType);
 
             try {
+                beforeEvaluation(routingContext);
                 executeEvaluation(routingContext, response);
+                afterEvaluation(routingContext);
             } catch(StandardException se) {
                 // Ensure the correct content-type in the case of error:
                 response.putHeader("Content-Type", contentType);
@@ -84,4 +105,22 @@ public abstract class SimpleController implements BasicController {
             response.setStatusCode(msg.getHttpStatus()).end(Json.encode(msg));
         }
     }
+
+    public HttpMethod getMethod() {
+        return method;
+    }
+
+    public void setMethod(HttpMethod method) {
+        this.method = method;
+    }
+
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
+    }
 }
+
+
