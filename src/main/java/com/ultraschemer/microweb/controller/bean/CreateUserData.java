@@ -1,10 +1,11 @@
 package com.ultraschemer.microweb.controller.bean;
 
-import com.ultraschemer.microweb.domain.bean.UserRole;
-import net.sf.oval.constraint.*;
+import net.sf.oval.constraint.EqualToField;
+import net.sf.oval.constraint.Length;
+import net.sf.oval.constraint.NotEmpty;
+import net.sf.oval.constraint.NotNull;
 
 import java.io.Serializable;
-import java.util.List;
 
 public class CreateUserData implements Serializable {
     /**
@@ -18,7 +19,6 @@ public class CreateUserData implements Serializable {
     /**
      * The user alias, or social name:
      */
-    @NotNull
     @NotEmpty
     private String alias;
 
@@ -38,6 +38,20 @@ public class CreateUserData implements Serializable {
     @Length(min = 5, max = 64)
     @EqualToField("password")
     private String passwordConfirmation;
+
+    /**
+     * The user given name.
+     */
+    @NotNull
+    @NotEmpty
+    private String givenName;
+
+    /**
+     * The user family name.
+     */
+    @NotNull
+    @NotEmpty
+    private String familyName;
 
     public String getName() {
         return name;
@@ -70,4 +84,23 @@ public class CreateUserData implements Serializable {
     public void setPasswordConfirmation(String passwordConfirmation) {
         this.passwordConfirmation = passwordConfirmation;
     }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public void setGivenName(String givenName) {
+        this.givenName = givenName;
+    }
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
+    }
 }
+
+
+

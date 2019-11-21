@@ -143,7 +143,7 @@ create table person (
 
 -- This is the User table, having BCrypt2 password hashes, but with
 -- no token management on it:
-create table "user" (
+create table user_ (
   id uuid primary key default uuid_generate_v4(),
 
   -- Always user is a person, but we don't know which
@@ -174,7 +174,7 @@ create table user__email_address (
   id uuid primary key default uuid_generate_v4(),
 
   -- The user:
-  user_id uuid not null references "user"(id),
+  user_id uuid not null references user_(id),
 
   -- The e-mail address:
   email_address_id uuid not null references email_address(id),
@@ -199,7 +199,7 @@ create table user__phone_number (
   id uuid primary key default uuid_generate_v4(),
 
   -- the user:
-  user_id uuid not null references "user"(id),
+  user_id uuid not null references user_(id),
 
   -- the phone number:
   phone_number_id uuid not null references phone_number(id),
@@ -229,7 +229,7 @@ create table access_token (
   expiration timestamp with time zone,
 
   -- The owner of such token:
-  user_id uuid not null references "user"(id),
+  user_id uuid not null references user_(id),
 
   -- Status:
   status varchar(64) not null,
@@ -254,7 +254,7 @@ create table user__role (
   id uuid primary key default uuid_generate_v4(),
 
   -- The user:
-  user_id uuid not null references "user"(id),
+  user_id uuid not null references user_(id),
 
   -- The role assumed by the user in Altec Backoffice:
   role_id uuid not null references role(id),

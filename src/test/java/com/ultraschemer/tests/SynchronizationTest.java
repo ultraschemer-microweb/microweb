@@ -1,14 +1,12 @@
 package com.ultraschemer.tests;
 
-import org.junit.After;
-import org.junit.Test;
 import com.ultraschemer.helpers.SynchronizationHelper;
 import com.ultraschemer.microweb.domain.DistributedCriticalSection;
 import com.ultraschemer.microweb.domain.Runtime;
 import com.ultraschemer.microweb.domain.Sequence;
-import com.ultraschemer.microweb.domain.error.CriticalSectionAcquiringFailureException;
-import com.ultraschemer.microweb.domain.error.CriticalSectionExitFailureException;
 import com.ultraschemer.microweb.error.StandardException;
+import org.junit.After;
+import org.junit.Test;
 
 import java.util.Calendar;
 import java.util.concurrent.ThreadLocalRandom;

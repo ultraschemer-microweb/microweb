@@ -60,7 +60,6 @@ dependencies {
     // Add Vertx to the project, to serve Web REST:
     compile group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     compile group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
-    compile group: 'io.vertx', name: 'vertx-auth-jwt', version: '3.7.1'
 
     // Install Postgresql driver to project - to connect to database:
     compile group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
