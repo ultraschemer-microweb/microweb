@@ -118,7 +118,7 @@ public class CentralUserRepositoryManagement {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.code() != 200) {
-                System.out.println(response.body().string());
+                System.out.println(Objects.requireNonNull(response.body()).string());
                 throw new FinishAuthorizationConsentException("Unable to finish authorization consent and get access token.");
             }
             return new JsonObject(Objects.requireNonNull(response.body()).string());
@@ -152,6 +152,13 @@ public class CentralUserRepositoryManagement {
 
         // Get the OpenId well known end-points:
         JsonObject wellKnown = CentralUserRepositoryManagement.wellKnown();
+
+        // TODO: Load from server the CLIENT REPRESENTATION and get ALL CLIENT SCOPES to use in the permission
+        //       request beloww.
+        //       Documentation: https://www.keycloak.org/docs-api/8.0/rest-api/#_clients_resource
+        //       URI: GET /{realm}/clients/{id}
+        //       Set the client ID as a database configuration, to avoid load all clients and pick the right one
+        //       (This can be processing expensive)
 
         // Require all possible user permissions from the authorization server:
         FormBody allPermissionsFormBody = new FormBody.Builder()
