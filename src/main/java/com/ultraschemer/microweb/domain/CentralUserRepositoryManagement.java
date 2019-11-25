@@ -118,8 +118,8 @@ public class CentralUserRepositoryManagement {
 
         try (Response response = client.newCall(request).execute()) {
             if (response.code() != 200) {
-                System.out.println(Objects.requireNonNull(response.body()).string());
-                throw new FinishAuthorizationConsentException("Unable to finish authorization consent and get access token.");
+                throw new FinishAuthorizationConsentException("Unable to finish authorization consent and get access token." +
+                        response.code() + "\n\nMessage:\n\n" + Objects.requireNonNull(response.body()).string());
             }
             return new JsonObject(Objects.requireNonNull(response.body()).string());
         } catch(FinishAuthorizationConsentException fe) {
