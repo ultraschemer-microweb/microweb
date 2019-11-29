@@ -8,6 +8,9 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.web.Router;
 import com.ultraschemer.microweb.domain.ServiceConfiguration;
+import io.vertx.ext.web.handler.CorsHandler;
+
+import java.util.Set;
 
 /**
  *
@@ -34,6 +37,30 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      */
     private Router getRouter() {
         return router;
+    }
+
+    protected void setCors(String path, Set<HttpMethod> methods, Set<String> headerNames) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods).allowedHeaders(headerNames));
+    }
+
+    protected void setCors(String path, HttpMethod method, String headerName) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethod(method).allowedHeader(headerName));
+    }
+
+    protected void setCors(String path, HttpMethod method) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethod(method));
+    }
+
+    protected void setCors(String path, String headerName) {
+        getRouter().route().handler(CorsHandler.create(path).allowedHeader(headerName));
+    }
+
+    protected void setCorsMethods(String path, Set<HttpMethod> methods) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods));
+    }
+
+    protected void setCorsHeaderNames(String path, Set<String> headerNames) {
+        getRouter().route().handler(CorsHandler.create(path).allowedHeaders(headerNames));
     }
 
     /**
