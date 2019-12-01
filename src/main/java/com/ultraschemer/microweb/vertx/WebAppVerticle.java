@@ -64,6 +64,38 @@ public abstract class WebAppVerticle extends AbstractVerticle {
     }
 
     /**
+     * A more complete method to enable CORS
+     *
+     * @param allowedOriginPattern allowed origin
+     * @param allowCredentials     allow credentials (true/false)
+     * @param maxAge               in seconds
+     * @param allowedHeaders       set of allowed headers
+     * @param methods              list of methods ... if empty all methods are allowed  @return self
+     */
+    public void enableCors(String allowedOriginPattern,
+                           boolean allowCredentials,
+                           int maxAge,
+                           Set<String> allowedHeaders,
+                           HttpMethod... methods) {
+
+        CorsHandler corsHandler = CorsHandler.create(allowedOriginPattern)
+                .allowCredentials(allowCredentials)
+                .maxAgeSeconds(maxAge);
+
+        if (methods == null || methods.length == 0) { // if not given than all
+            methods = HttpMethod.values();
+        }
+
+        for (HttpMethod method : methods) {
+            corsHandler.allowedMethod(method);
+        }
+
+        corsHandler.allowedHeaders(allowedHeaders);
+
+        getRouter().route().handler(corsHandler);
+    }
+
+    /**
      * Http port Getter.
      * @return The Http listening port number.
      */
