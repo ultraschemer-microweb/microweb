@@ -96,3 +96,12 @@ atlassian-ide-plugin.xml
 
 # AspectJ log files:
 ajcore.*.txt
+
+# Logs and traces:
+*.log
+*.log.*
+core.*.dmp
+javacore.*.txt
+Snap.*.trc
+/ib-gateway/core.*.dmp
+/src/main/resources/log4j.xml
