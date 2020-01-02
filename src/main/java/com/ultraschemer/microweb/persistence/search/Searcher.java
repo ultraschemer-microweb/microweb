@@ -1,19 +1,20 @@
 package com.ultraschemer.microweb.persistence.search;
 
-import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.domain.error.InvalidLinkConditionInQueryExtensionException;
 import com.ultraschemer.microweb.domain.error.QueryParseException;
+import com.ultraschemer.microweb.domain.error.QueryTypeUnsupportedException;
 import com.ultraschemer.microweb.domain.error.SearchConditionNotFoundException;
+import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
-import static com.ultraschemer.microweb.persistence.search.Condition.AND;
-import static com.ultraschemer.microweb.persistence.search.Condition.OR;
+import static java.lang.Double.parseDouble;
+import static java.lang.Long.parseLong;
+import static java.util.stream.Collectors.toList;
 
 /**
  * Generic searcher that uses a customized search string, which can be used as a URL query string or a custom search
@@ -21,200 +22,20 @@ import static com.ultraschemer.microweb.persistence.search.Condition.OR;
  */
 public class Searcher<T> {
     private String entityName;
+    private String hardFilter;
+
+    public Searcher(String entityName, String hardFilter) {
+        this.entityName = entityName;
+        this.hardFilter = hardFilter;
+    }
 
     public Searcher(String entityName) {
         this.entityName = entityName;
+        this.hardFilter = null;
     }
 
-    public List<T> load(Item... items) throws SearchConditionNotFoundException, QueryParseException {
-        return load(null, items);
-    }
-
-    public List<T> load(Map<String, String> parameterConversions, Item... items)
-            throws SearchConditionNotFoundException, QueryParseException {
-        List<T> ts = null;
-
-        StringBuilder hql = new StringBuilder("from " + entityName + " where ");
-        for(Item item : items) {
-            if(item instanceof Parameter) {
-                Parameter parameter = (Parameter) item;
-                switch (parameter.getCriterion().toLowerCase()) {
-                    case "contains":
-                    case "starts":
-                    case "finishes":
-                        hql.append("lower(");
-                        hql.append(parameter.getField());
-                        hql.append(") like :");
-                        break;
-                    case "equals":
-                        hql.append(parameter.getField());
-                        hql.append(" = :");
-                        break;
-                    case "lt":
-                        hql.append(parameter.getField());
-                        hql.append(" < :");
-                        break;
-                    case "gt":
-                        hql.append(parameter.getField());
-                        hql.append(" > :");
-                        break;
-                    case "ltequals":
-                        hql.append(parameter.getField());
-                        hql.append(" <= :");
-                        break;
-                    case "gtequals":
-                        hql.append(parameter.getField());
-                        hql.append(" >= :");
-                        break;
-                    // TODO: Add the criterion "in", which is in absent.
-                    default:
-                        String message = "Search criterion " + parameter.getCriterion() + " is not supported.";
-                        throw new SearchConditionNotFoundException(message);
-                }
-                hql.append(parameter.getField());
-            } else {
-                Condition condition = (Condition) item;
-                hql.append(condition.toString());
-            }
-        }
-
-        // Gera a query e a executa:
-        try(Session session = EntityUtil.openTransactionSession()) {
-            Query query = session.createQuery(hql.toString());
-
-            for(Item item : items) {
-                if(item instanceof Parameter) {
-                    Parameter parameter = (Parameter) item;
-                    Object value = parameter.getValue();
-                    switch (parameter.getCriterion().toLowerCase()) {
-                        case "contains":
-                            query.setParameter(parameter.getField(),
-                                    "%" + parameter.getValue().toString().toLowerCase() + "%");
-                            break;
-                        case "starts":
-                            query.setParameter(parameter.getField(),
-                                    parameter.getValue().toString().toLowerCase() + "%");
-                            break;
-                        case "finishes":
-                            query.setParameter(parameter.getField(),
-                                    "%" + parameter.getValue().toString().toLowerCase());
-                            break;
-                        default:
-                            query.setParameter(parameter.getField(), value);
-                    }
-                }
-            }
-
-            @SuppressWarnings("unchecked")
-            List<T> tss = query.list();
-            ts = tss;
-        } catch (Exception e) {
-            String msg = "Error trying to evaluate the query string: " + e.getLocalizedMessage() +
-                    "\nStack-Trace: " + Throwables.getStackTraceAsString(e);
-            throw new QueryParseException(msg);
-        }
-
-        return ts;
-    }
-
-    public static Item[] parseQueryString(String query) throws QueryParseException {
-        return parseQueryString(null, query);
-    }
-
-    /**
-     * This method parses a URL search query string, tokenizing it, using the next semantics:
-     *
-     * // TODO: Support searches in a list of elements ("in" criterion).
-     *
-     * query ::= q=&lt;block&gt; [ ; &lt;block&gt; ...]
-     * &lt;block&gt; ::= &lt;param&gt;:&lt;criterion&gt;:&lt;type&gt;:&lt;value&gt | :OR: | :AND:
-     * &lt;param&gt; ::= STR
-     * &lt;criterion&gt; ::= equals | starts | finishes | lt | gt |
-     * ltequals | gtequals | contains | in
-     * &lt;type&gt; ::=  integer | text |  float | boolean
-     * &lt;value&gt; :: STR [ ,STR ... ]
-     *
-     * Example:
-     * q=User.name:contains:text:Paulo;:AND:;Role.name:starts:text:Admin
-     *
-     * @param parameterConversions Map containing the names necessary to change, from the query string to the item array.
-     * @param query A string containing a query.
-     * @return An array with the item tokens of the given query.
-     *
-     */
-    public static Item[] parseQueryString(Map<String, String> parameterConversions, String query)
-            throws QueryParseException {
-        try {
-            LinkedList<Item> itemLinkedList = new LinkedList<>();
-            // The individual Items:
-            String fullItems[] = query.split(";");
-
-            // Make the individual parse of each obtained item:
-            for(String item: fullItems) {
-                if(":OR:".equals(item)) {
-                    itemLinkedList.add(OR);
-                } else if(":AND:".equals(item)) {
-                    itemLinkedList.add(AND);
-                } else {
-                    String subitems[] = item.split(":");
-                    if(subitems.length != 4) {
-                        String msg;
-                        msg = "Invalid format - the query item must have exactly four colon (:) separated elements.";
-                        throw new QueryParseException(msg);
-                    }
-
-                    String field = subitems[0];
-                    String criterion = subitems[1];
-                    String type = subitems[2];
-                    String value = subitems[3];
-
-                    // Convert parameter in according to conversion map:
-                    String convertTo = parameterConversions.get(field);
-                    if(convertTo != null) {
-                        field = convertTo;
-                    }
-
-                    if(!Arrays.asList(new String [] {"equals",
-                            "starts", "finishes", "lt", "gt",
-                            "ltequals", "gtequals", "contains"}).contains(criterion)) {
-                        String msg = "Search doesn't support this criterion: \"" + criterion + "\".";
-                        throw new QueryParseException(msg);
-                    }
-
-                    // Finally create the parameter item:
-                    Parameter parameter;
-                    switch(type) {
-                        case "integer":
-                            parameter = new Parameter<>(field, criterion, Long.parseLong(value));
-                            break;
-                        case "text":
-                            parameter = new Parameter<>(field, criterion, value);
-                            break;
-                        case "float":
-                            parameter = new Parameter<>(field, criterion, Double.parseDouble(value));
-                            break;
-                        case "boolean":
-                            parameter = new Parameter<>(field, criterion, Boolean.parseBoolean(value));
-                            break;
-                        default: {
-                            String msg = "Data type \"" + type + "\"not suppported by search.";
-                            throw new QueryParseException(msg);
-                        }
-                    }
-
-                    itemLinkedList.add(parameter);
-                }
-            }
-
-            return itemLinkedList.toArray(new Item[]{});
-        } catch (Exception e) {
-            String msg = "Error interpreting query string: " + e.getMessage();
-            throw new QueryParseException(msg);
-        }
-    }
-
-    public List<T> load(String query) throws QueryParseException {
-        return load(null, query);
+    public List<T> load(String query, int start, int count) throws QueryParseException {
+        return load(null, query, start, count);
     }
 
     /**
@@ -223,45 +44,78 @@ public class Searcher<T> {
      *
      * @param parameterConversions The conversion map used to change parameter variable names.
      * @param query The string query per se.
+     *        query ::= q=&lt;block&gt; [ ; &lt;block&gt; ...]
+     *        &lt;block&gt; ::= &lt;param&gt;:&lt;criterion&gt;:&lt;type&gt;:&lt;value&gt | :OR: | :AND:
+     *        &lt;param&gt; ::= STR
+     *        &lt;criterion&gt; ::= equals | starts | finishes | lt | gt |
+     *        ltequals | gtequals | contains | in
+     *        &lt;type&gt; ::=  integer | text |  float | boolean | uuid
+     *        &lt;value&gt; :: STR [ ,STR ... ]
+     *
+     *        Example:
+     *        q=User.name:contains:text:Paulo;:AND:;Role.name:starts:text:Admin
+     *
+     *        Colons can be escaped using the reverse-bar, like:
+     *        q=User.name:contains:text:Pau\:lo;:AND:;Role.name:starts:text:Admin
+     *
+     *        The reverse bar can be used to escape itself, like:
+     *        q=User.name:contains:text:Pau\\lo;:AND:;Role.name:starts:text:Admin
+     *
+     *        If you use the query in a GET URL, or in a post, you need to escape it using url encode, like:
+     *        q=urlencode(User.name:contains:text:Paulo;:AND:;Role.name:starts:text:Admin)
+     *        which equals to:
+     *        q=User.name%3Acontains%3Atext%3APaulo%3B%3AAND%3A%3BRole.name%3Astarts%3Atext%3AAdmin
      * @return The list of searched objects.
      * @throws QueryParseException Raised in the case of search string malformation.
      */
-    public List<T> load(Map<String, String> parameterConversions, String query) throws QueryParseException {
+    public List<T> load(Map<String, String> parameterConversions, String query, int start, int count)
+            throws QueryParseException {
         try (Session session = EntityUtil.openTransactionSession()) {
-            LinkedList<Parameter> parameterLinkedList = new LinkedList<>();
             StringBuilder hql = new StringBuilder("from " + entityName + " where ");
 
-            // The individual Items:
-            String fullItems[] = query.split(";");
+            if(hardFilter != null) {
+                hql.append("(" + hardFilter + ") and (");
+            };
+
+            // Split the individual items using the unescaped semicolons:
+            String[] fullItems = query.split("(?<!\\\\);");
 
             // Make the individual parse of each obtained item:
+            LinkedList<Parameter> parameterLinkedList = new LinkedList<>();
             for(String item: fullItems) {
                 if(":OR:".equals(item)) {
                     hql.append(" or ");
                 } else if(":AND:".equals(item)) {
                     hql.append(" and ");
                 } else {
-                    String subitems[] = item.split(":");
-                    if(subitems.length != 4) {
+                    // Split the items using the unescaped colons:
+                    String[] subItems = item.split("(?<!\\\\):");
+                    if(subItems.length != 4) {
                         String msg;
                         msg = "Invalid format - the query item must have exactly four colon (:) separated elements.";
                         throw new QueryParseException(msg);
                     }
 
-                    String field = subitems[0];
-                    String criterion = subitems[1];
-                    String type = subitems[2];
-                    String value = subitems[3];
+                    String field = subItems[0].replaceAll("\\\\(.?)", "$1");
+                    String criterion = subItems[1].replaceAll("\\\\(.?)", "$1");
+                    String type = subItems[2].replaceAll("\\\\(.?)", "$1");
+                    // Don't revert the escaping here, since the values can be evaluated
+                    // in the "in" criterion, yet.
+                    String value = subItems[3];
 
                     // Convert the parameter in according to the conversion map:
-                    String convertTo = parameterConversions.get(field);
-                    if(convertTo != null) {
-                        field = convertTo;
+                    if(parameterConversions!= null) {
+                        String convertTo = parameterConversions.get(field);
+                        if (convertTo != null) {
+                            field = convertTo;
+                        }
                     }
 
                     if(!Arrays.asList(new String [] {"equals",
                             "starts", "finishes", "lt", "gt",
-                            "ltequals", "gtequals", "contains"}).contains(criterion)) {
+                            "ltequals", "gtequals", "contains",
+                            "in"}).contains(criterion))
+                    {
                         String msg = "Criterion \"" + criterion + "\" not supported by search.";
                         throw new QueryParseException(msg);
                     }
@@ -270,16 +124,62 @@ public class Searcher<T> {
                     Parameter parameter;
                     switch(type) {
                         case "integer":
-                            parameter = new Parameter<>(field, criterion, Long.parseLong(value));
+                            if(criterion.toLowerCase().equals("in")) {
+                                // Split parameters by comma:
+                                parameter = new Parameter<>(field, criterion,
+                                        Arrays.stream(value.split("(?<!\\\\),"))
+                                                // Reverse the escapes:
+                                                .map(e -> parseLong(e.replaceAll("\\\\(.?)", "$1")))
+                                                .collect(toList()));
+                            } else {
+                                parameter = new Parameter<>(field, criterion,
+                                        parseLong(value.replaceAll("\\\\(.?)", "$1")));
+                            }
                             break;
                         case "text":
-                            parameter = new Parameter<>(field, criterion, value);
+                            if(criterion.toLowerCase().equals("in")) {
+                                // Split parameters by comma:
+                                parameter = new Parameter<>(field, criterion,
+                                        Arrays.stream(value.split("(?<!\\\\),"))
+                                                // Reverse the escapes:
+                                                .map(e -> e.replaceAll("\\\\(.?)", "$1"))
+                                                .collect(toList()));
+                            } else {
+                                parameter = new Parameter<>(field, criterion, value.replaceAll("\\\\(.?)", "$1"));
+                            }
                             break;
                         case "float":
-                            parameter = new Parameter<>(field, criterion, Double.parseDouble(value));
+                            if(criterion.toLowerCase().equals("in")) {
+                                // Split parameters by comma:
+                                parameter = new Parameter<>(field, criterion,
+                                        Arrays.stream(value.split("(?<!\\\\),"))
+                                                // Reverse the escapes:
+                                                .map(e -> parseDouble(e.replaceAll("\\\\(.?)", "$1")))
+                                                .collect(toList()));
+                            } else {
+                                parameter = new Parameter<>(field, criterion,
+                                        parseDouble(value.replaceAll("\\\\(.?)", "$1")));
+                            }
+                            break;
+                        case "uuid":
+                            if(criterion.toLowerCase().equals("in")) {
+                                // Split parameters by comma:
+                                parameter = new Parameter<>(field, criterion,
+                                        Arrays.stream(value.split("(?<!\\\\),"))
+                                                // Reverse the escapes:
+                                                .map(e -> UUID.fromString(e.replaceAll("\\\\(.?)", "$1")))
+                                                .collect(toList()));
+                            } else {
+                                parameter = new Parameter<>(field, criterion,
+                                        UUID.fromString(value.replaceAll("\\\\(.?)", "$1")));
+                            }
                             break;
                         case "boolean":
-                            parameter = new Parameter<>(field, criterion, Boolean.parseBoolean(value));
+                            if(criterion.toLowerCase().equals("in")) {
+                                throw new QueryParseException("Boolean types doesn't support the \"in\" criterion.");
+                            } else {
+                                parameter = new Parameter<>(field, criterion, Boolean.parseBoolean(value));
+                            }
                             break;
                         default: {
                             String msg = "Data type \"" + type + "\"not supported by search.";
@@ -315,47 +215,98 @@ public class Searcher<T> {
                             hql.append(parameter.getField());
                             hql.append(" >= :");
                             break;
-                        // TODO: Add the criterion "in", which is absent.
+                        case "in":
+                            hql.append(parameter.getField());
+                            hql.append(" in :");
+                            break;
                         default:
                             String message = "Criterion " + parameter.getCriterion() + " is not supported by search.";
                             throw new SearchConditionNotFoundException(message);
                     }
 
-                    hql.append(parameter.getField());
+                    hql.append(parameter.getField().replaceAll("\\.", "__POINT__"));
                     parameterLinkedList.add(parameter);
                 }
             }
 
-            @SuppressWarnings("unchecked")
+            // Close the custom query:
+            if(hardFilter != null) {
+                hql.append(")");
+            }
+
+            // Finally, create the query:
             Query databaseQuery = session.createQuery(hql.toString());
 
             for(Parameter parameter: parameterLinkedList) {
                 Object value = parameter.getValue();
+                String field = parameter.getField().replaceAll("\\.", "__POINT__");
                 switch (parameter.getCriterion().toLowerCase()) {
                     case "contains":
-                        databaseQuery.setParameter(parameter.getField(),
-                                "%" + parameter.getValue().toString().toLowerCase() + "%");
+                        databaseQuery.setParameter(field, "%" + value.toString().toLowerCase() + "%");
                         break;
                     case "starts":
-                        databaseQuery.setParameter(parameter.getField(),
-                                parameter.getValue().toString().toLowerCase() + "%");
+                        databaseQuery.setParameter(field, value.toString().toLowerCase() + "%");
                         break;
                     case "finishes":
-                        databaseQuery.setParameter(parameter.getField(),
-                                "%" + parameter.getValue().toString().toLowerCase());
+                        databaseQuery.setParameter(field, "%" + value.toString().toLowerCase());
+                        break;
+                    case "in":
+                        databaseQuery.setParameterList(field, (List)value);
                         break;
                     default:
-                        databaseQuery.setParameter(parameter.getField(), value);
+                        databaseQuery.setParameter(field, value);
                 }
             }
 
             @SuppressWarnings("unchecked")
-            List<T> ts = databaseQuery.list();
+            List<T> ts = databaseQuery.setFirstResult(start).setMaxResults(count).list();
 
             return ts;
         } catch (Exception e) {
             String msg = "Error interpreting or executing query string: " + e.getMessage();
             throw new QueryParseException(msg);
+        }
+    }
+
+    public static String createQuery(String param, String criterion, String type, List<Object> value)
+            throws StandardException {
+        String newQuery = param + ":" + criterion + ":" + type + ":";
+
+        // Evaluate value
+        switch(type) {
+            case "integer":
+            case "float":
+            case "uuid":
+            case "boolean":
+                newQuery += value.stream().map(Object::toString).collect(Collectors.joining(","));
+                break;
+            case "text":
+                // Text values must have the reversed bars (\), semicolons (;), colons (:) and commas (,) escaped:
+                newQuery += value.stream().map(e -> e.toString()
+                        .replaceAll("\\\\", "\\\\")
+                        .replaceAll(";", "\\;")
+                        .replaceAll(":", "\\:")
+                        .replaceAll(",", "\\,")).collect(Collectors.joining(","));
+            default:
+                throw new QueryTypeUnsupportedException("The type " + type +
+                        " is not supported to create search queries.");
+        }
+
+        return newQuery;
+    }
+
+    public static String extendQuery(String query, String linkCondition, String param, String criterion, String type, List<Object> value)
+            throws StandardException {
+        String newQuery = query;
+        if(!query.endsWith(";")) {
+            newQuery += ";";
+        }
+
+        if(Arrays.asList("AND", "OR").contains(linkCondition.toUpperCase())) {
+            return newQuery + ":" + linkCondition.toUpperCase() +  ":;" + createQuery(param, criterion, type, value);
+        } else {
+            throw new InvalidLinkConditionInQueryExtensionException(
+                    "Only the conditions \"OR\" and \"AND\" are valid ones.");
         }
     }
 }
