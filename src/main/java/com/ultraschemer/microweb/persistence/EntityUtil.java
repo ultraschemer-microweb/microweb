@@ -18,45 +18,52 @@ public class EntityUtil {
     /**
      * Static initialization, called the first time the EntityUtil class is called.
      */
-    static {
-        String addr = System.getenv("MICROWEB_DB_ADDR");
-        String userName = System.getenv("MICROWEB_DB_USER");
-        String userPassword = System.getenv("MICROWEB_DB_PASSWD");
-
-        if(addr != null) {
-            addr = "jdbc:postgresql://" + addr;
-            System.out.println("Using custom PostgreSQL Database Address: " + addr);
-        }
-
-        if(userName != null) {
-            System.out.println("Using custom PostgreSQL Database User: " + userName);
-        }
-
-        if(userPassword != null) {
-            System.out.println("Using custom PostgreSQL Database Password.");
-        }
-
-        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().configure();
-
-        if(addr != null) {
-            builder.applySetting("hibernate.connection.url", addr);
-        }
-
-        if(addr != null) {
-            builder.applySetting("hibernate.connection.username", userName);
-        }
-
-        if(addr != null) {
-            builder.applySetting("hibernate.connection.password", userPassword);
-        }
-
-        final StandardServiceRegistry registry = builder.build();
+    public static void initialize() {
+        final StandardServiceRegistry registry = initConfiguration().build();
         try {
             sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
         } catch (Exception e) {
             StandardServiceRegistryBuilder.destroy(registry);
             e.printStackTrace();
         }
+    }
+
+    /**
+     * This class can be overridden, to enable custom database access initialization
+     * @return The database builder to be used by Hibernate, globally, in the project
+     */
+    public static StandardServiceRegistryBuilder initConfiguration() {
+        String address = System.getenv("MICROWEB_DB_ADDRESS");
+        String userName = System.getenv("MICROWEB_DB_USER");
+        String userPassword = System.getenv("MICROWEB_DB_PASSWORD");
+
+        if(address != null) {
+            System.out.println("Using custom Database Address: " + address);
+        }
+
+        if(userName != null) {
+            System.out.println("Using custom Database User: " + userName);
+        }
+
+        if(userPassword != null) {
+            System.out.println("Using custom Database Password.");
+        }
+
+        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().configure();
+
+        if(address != null) {
+            builder.applySetting("hibernate.connection.url", address);
+        }
+
+        if(address != null) {
+            builder.applySetting("hibernate.connection.username", userName);
+        }
+
+        if(address != null) {
+            builder.applySetting("hibernate.connection.password", userPassword);
+        }
+
+        return builder;
     }
 
     /**

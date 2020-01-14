@@ -1,6 +1,7 @@
 import com.ultraschemer.microweb.controller.*;
 import com.ultraschemer.microweb.domain.RoleManagement;
 import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
 import io.vertx.core.http.HttpMethod;
 
@@ -8,6 +9,11 @@ import io.vertx.core.http.HttpMethod;
  * Entry point principal da aplicação:
  */
 public class App extends WebAppVerticle {
+    static {
+        // Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
     @Override
     public void initialization() {
         // Verify the default user and the default role:
