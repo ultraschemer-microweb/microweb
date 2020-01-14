@@ -31,7 +31,7 @@ public class CentralUserRepositoryManagement {
 
     public static JsonObject wellKnown() throws StandardException {
         if(wellKnown == null) {
-            String wellKnowAddress = Configuration.read("tradegw-backend oauth wellknown");
+            String wellKnowAddress = Configuration.read("backend oauth wellknown");
             if(wellKnowAddress == null || wellKnowAddress.equals("")) {
                 throw new Oauth2WellKnowConfigurationException("Well Known address configurations not assigned.");
             }
@@ -57,7 +57,7 @@ public class CentralUserRepositoryManagement {
 
     private static JsonObject masterWellKnown() throws StandardException {
         if(masterWellKnown == null) {
-            String wellKnowAddress = Configuration.read("keycloak master oauth wellknow");
+            String wellKnowAddress = Configuration.read("keycloak master oauth wellknown");
             if(wellKnowAddress == null || wellKnowAddress.equals("")) {
                 throw new Oauth2MasterWellKnowConfigurationException("Well Known address configurations not assigned.");
             }
@@ -105,7 +105,7 @@ public class CentralUserRepositoryManagement {
                 .add("session_state", foreignConsent.getSessionState())
                 .add("code", foreignConsent.getCode());
 
-        if (foreignConsent.getState() != null) {
+        if(foreignConsent.getState() != null) {
             builder.add("state", foreignConsent.getState());
         }
 
@@ -116,14 +116,12 @@ public class CentralUserRepositoryManagement {
                 .post(formBody)
                 .build();
 
-        try (Response response = client.newCall(request).execute()) {
+        try(Response response = client.newCall(request).execute()) {
             if (response.code() != 200) {
                 throw new FinishAuthorizationConsentException("Unable to finish authorization consent and get access token." +
                         response.code() + "\n\nMessage:\n\n" + Objects.requireNonNull(response.body()).string());
             }
             return new JsonObject(Objects.requireNonNull(response.body()).string());
-        } catch(FinishAuthorizationConsentException fe) {
-            throw fe;
         } catch(Exception e) {
             throw new FinishAuthorizationConsentException("Unable to finish authorization consent and get access token: " +
                     e.getLocalizedMessage(), e);
@@ -132,6 +130,9 @@ public class CentralUserRepositoryManagement {
 
     public static User evaluateResourcePermission(String method, String path, String authorization)
             throws StandardException {
+        String clientApplication = Configuration.read("keycloak client application");
+        String[] roles = Configuration.read("keycloak client application available permissions").split(",");
+
         if(authorization == null) {
             throw new UnauthorizedException("No authorization header.");
         }
@@ -153,27 +154,19 @@ public class CentralUserRepositoryManagement {
         // Get the OpenId well known end-points:
         JsonObject wellKnown = CentralUserRepositoryManagement.wellKnown();
 
-        // TODO: Load from server the CLIENT REPRESENTATION and get ALL CLIENT SCOPES to use in the permission
-        //       request beloww.
-        //       Documentation: https://www.keycloak.org/docs-api/8.0/rest-api/#_clients_resource
-        //       URI: GET /{realm}/clients/{id}
-        //       Set the client ID as a database configuration, to avoid load all clients and pick the right one
-        //       (This can be processing expensive)
-
         // Require all possible user permissions from the authorization server:
-        FormBody allPermissionsFormBody = new FormBody.Builder()
+        FormBody.Builder builder = new FormBody.Builder()
                 .add("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket")
-                .add("audience", "tradegw-backend")
-                .add("permission", "#digital-banking")
-                .add("permission", "#digital-banking-management")
-                .add("permission", "#trading-platform")
-                .add("permission", "#user-management")
-                .build();
+                .add("audience", clientApplication);
+        Arrays.stream(roles).map(s -> builder.add("permission", s));
+        FormBody allPermissionsFormBody = builder.build();
         Request resourceRequest = new Request.Builder()
                 .url(wellKnown.getString("token_endpoint"))
                 .header("Authorization", authorization)
                 .post(allPermissionsFormBody)
                 .build();
+
+        // Process the permissions:
         JsonObject permissionData;
         try(Response response = client.newCall(resourceRequest).execute()) {
             if(response.code() != 200) {
@@ -224,7 +217,7 @@ public class CentralUserRepositoryManagement {
 
         @SuppressWarnings("unchecked")
         List<String> authorizedRoles = (List<String>)
-                ((Map<String, Object>) jwt.getClaim("resource_access").asMap().get("tradegw-backend")).get("roles");
+                ((Map<String, Object>) jwt.getClaim("resource_access").asMap().get(clientApplication)).get("roles");
         User returnUser = evaluateUserAndRoles(u, authorizedRoles);
 
         if(!authorized) {
@@ -262,7 +255,7 @@ public class CentralUserRepositoryManagement {
             updatedUser.setStatus("active");
             updatedUser.setCentralControlId(user.getCentralControlId());
 
-            // Person Id is an internal filter of Microweb (and from TradeGW - not updated at this moment)
+            // Person Id is an internal filter of Microweb
             // Persist user:
             session.persist(updatedUser);
 
@@ -371,6 +364,8 @@ public class CentralUserRepositoryManagement {
      * @throws StandardException Thrown error in the case of any failure or impossibility to create user.
      */
     public static UserData registerUser(User creator, CreateUserData u, List<String> roles) throws StandardException {
+        String clientApplication = Configuration.read("keycloak client application");
+
         // Only the root user can create users with roles "root" and "user-management".
         // Only users with role "user-management" can access this business rule.
         try(Session session = EntityUtil.openTransactionSession()) {
@@ -403,7 +398,7 @@ public class CentralUserRepositoryManagement {
         }
 
         JsonObject credentials = keyCloakLogin();
-        String setyAdminResource = Configuration.read("keycloak sety admin resource");
+        String microwebAdminResource = Configuration.read("keycloak admin resource");
         JsonObject userRepresentation = new JsonObject();
 
         userRepresentation.put("username", u.getName());
@@ -415,7 +410,7 @@ public class CentralUserRepositoryManagement {
 
         // Create the user:
         Request creationUserRequest = new Request.Builder()
-                .url(setyAdminResource + "/users")
+                .url(microwebAdminResource + "/users")
                 .header("Authorization", "Bearer " + credentials.getString("access_token"))
                 .post(FormBody.create(userRepresentation.toString(), MediaType.parse("application/json; charset=utf-8")))
                 .build();
@@ -435,7 +430,7 @@ public class CentralUserRepositoryManagement {
         Request loadUserRequest;
         try {
             loadUserRequest = new Request.Builder()
-                    .url(setyAdminResource + "/users?username=" + URLEncoder.encode(u.getName(),
+                    .url(microwebAdminResource + "/users?username=" + URLEncoder.encode(u.getName(),
                             StandardCharsets.UTF_8.toString()))
                     .header("Authorization", "Bearer " + credentials.getString("access_token"))
                     .get()
@@ -481,28 +476,28 @@ public class CentralUserRepositoryManagement {
         // https://stackoverflow.com/questions/56254627/keycloak-using-admin-api-to-add-client-role-to-user
 
         Request loadClientsRequest = new Request.Builder()
-                .url(setyAdminResource + "/clients?clientId=tradegw-backend")
+                .url(microwebAdminResource + "/clients?clientId=" + clientApplication)
                 .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
                 .get()
                 .build();
-        JsonObject tradeGwBackendObject;
+        JsonObject microwebBackendObject;
         try(Response response = client.newCall(loadClientsRequest).execute()) {
             if(response.code() >= 300) {
                 throw new CreatedUserButRolesNotAssignedException("Unable to assign roles to user because the default " +
-                        "application (tradegw-backend) has not been found. Status code: " + response.code() +
+                        "application (" + clientApplication + ") has not been found. Status code: " + response.code() +
                         "\n\nMessage: " + Objects.requireNonNull(response.body()).string());
             }
-            tradeGwBackendObject = new JsonArray(Objects.requireNonNull(response.body()).string()).getJsonObject(0);
+            microwebBackendObject = new JsonArray(Objects.requireNonNull(response.body()).string()).getJsonObject(0);
         } catch(CreatedUserButRolesNotAssignedException ce) {
             throw ce;
         } catch(Exception e) {
             throw new CreatedUserButRolesNotAssignedException("Unable to assign roles to user because the default " +
-                    "application (tradegw-backend) has not been found.", e);
+                    "application (" + clientApplication + ") has not been found.", e);
         }
 
         Request loadAvailableRolesRequest = new Request.Builder()
-                .url(setyAdminResource + "/users/" + createdUser.getString("id") + "/role-mappings/clients/" +
-                        tradeGwBackendObject.getString("id") + "/available")
+                .url(microwebAdminResource + "/users/" + createdUser.getString("id") + "/role-mappings/clients/" +
+                        microwebBackendObject.getString("id") + "/available")
                 .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
                 .get()
                 .build();
@@ -533,8 +528,8 @@ public class CentralUserRepositoryManagement {
 
         // Assign roles to user
         Request assignRolesRequest = new Request.Builder()
-                .url(setyAdminResource + "/users/" + createdUser.getString("id") + "/role-mappings/clients/" +
-                        tradeGwBackendObject.getString("id"))
+                .url(microwebAdminResource + "/users/" + createdUser.getString("id") + "/role-mappings/clients/" +
+                        microwebBackendObject.getString("id"))
                 .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
                 .post(FormBody.create(rolesToAssign.toString(), MediaType.parse("application/json; charset=utf-8")))
                 .build();
@@ -559,7 +554,7 @@ public class CentralUserRepositoryManagement {
         resetPasswordData.put("value", u.getPassword());
 
         Request resetPasswordRequest = new Request.Builder()
-                .url(setyAdminResource + "/users/" + createdUser.getString("id") + "/reset-password")
+                .url(microwebAdminResource + "/users/" + createdUser.getString("id") + "/reset-password")
                 .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
                 .put(FormBody.create(resetPasswordData.toString(), MediaType.parse("application/json; charset=utf-8")))
                 .build();
@@ -710,12 +705,12 @@ public class CentralUserRepositoryManagement {
 
         // If successful, change the user password:
         JsonObject credentials = keyCloakLogin();
-        String setyAdminResource = Configuration.read("keycloak sety admin resource");
+        String microwebAdminResource = Configuration.read("keycloak admin resource");
         // Load created user:
         Request loadUserRequest;
         try {
             loadUserRequest = new Request.Builder()
-                    .url(setyAdminResource + "/users?username=" + URLEncoder.encode(u.getName(),
+                    .url(microwebAdminResource + "/users?username=" + URLEncoder.encode(u.getName(),
                             StandardCharsets.UTF_8.toString()))
                     .header("Authorization", "Bearer " + credentials.getString("access_token"))
                     .get()
@@ -760,7 +755,7 @@ public class CentralUserRepositoryManagement {
         resetPasswordData.put("value", newPassword);
 
         Request resetPasswordRequest = new Request.Builder()
-                .url(setyAdminResource + "/users/" + loadedUser.getString("id") + "/reset-password")
+                .url(microwebAdminResource + "/users/" + loadedUser.getString("id") + "/reset-password")
                 .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
                 .put(FormBody.create(resetPasswordData.toString(), MediaType.parse("application/json; charset=utf-8")))
                 .build();
@@ -778,4 +773,5 @@ public class CentralUserRepositoryManagement {
         keyCloakLogoff(credentials);
     }
 }
+
 
