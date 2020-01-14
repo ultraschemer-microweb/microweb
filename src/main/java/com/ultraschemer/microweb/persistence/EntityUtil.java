@@ -19,12 +19,20 @@ public class EntityUtil {
      * Static initialization, called the first time the EntityUtil class is called.
      */
     public static void initialize() {
-        final StandardServiceRegistry registry = initConfiguration().build();
-        try {
-            sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
-        } catch (Exception e) {
-            StandardServiceRegistryBuilder.destroy(registry);
-            e.printStackTrace();
+        if(sessionFactory == null) {
+            initialize(EntityUtil.initConfiguration());
+        }
+    }
+
+    protected static void initialize(StandardServiceRegistryBuilder initialConfiguration) {
+        if(sessionFactory == null) {
+            final StandardServiceRegistry registry = initialConfiguration.build();
+            try {
+                sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
+            } catch (Exception e) {
+                StandardServiceRegistryBuilder.destroy(registry);
+                e.printStackTrace();
+            }
         }
     }
 

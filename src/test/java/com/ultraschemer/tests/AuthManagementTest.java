@@ -3,6 +3,7 @@ package com.ultraschemer.tests;
 import com.github.javafaker.Faker;
 import com.ultraschemer.helpers.PersonHelper;
 import com.ultraschemer.microweb.entity.Person;
+import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.junit.*;
 import com.ultraschemer.helpers.AccessTokenHelper;
 import com.ultraschemer.helpers.UserHelper;
@@ -20,6 +21,10 @@ public class AuthManagementTest {
     private static Person person;
     private static User user;
     private static String USER_PASSWORD = "USER_PASSWORD";
+
+    static {
+        EntityUtil.initialize();
+    }
 
     @BeforeClass
     public static void fixtureSetup() throws Exception {

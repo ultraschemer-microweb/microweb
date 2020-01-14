@@ -5,6 +5,7 @@ import com.ultraschemer.microweb.domain.DistributedCriticalSection;
 import com.ultraschemer.microweb.domain.Runtime;
 import com.ultraschemer.microweb.domain.Sequence;
 import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.junit.After;
 import org.junit.Test;
 
@@ -14,6 +15,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.Assert.*;
 
 public class SynchronizationTest {
+    static {
+        EntityUtil.initialize();
+    }
+
     @After
     public void tearDown() {
         SynchronizationHelper.clearRuntime();
