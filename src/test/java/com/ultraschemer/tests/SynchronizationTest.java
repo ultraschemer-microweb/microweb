@@ -1,14 +1,13 @@
 package com.ultraschemer.tests;
 
-import org.junit.After;
-import org.junit.Test;
 import com.ultraschemer.helpers.SynchronizationHelper;
 import com.ultraschemer.microweb.domain.DistributedCriticalSection;
 import com.ultraschemer.microweb.domain.Runtime;
 import com.ultraschemer.microweb.domain.Sequence;
-import com.ultraschemer.microweb.domain.error.CriticalSectionAcquiringFailureException;
-import com.ultraschemer.microweb.domain.error.CriticalSectionExitFailureException;
 import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import org.junit.After;
+import org.junit.Test;
 
 import java.util.Calendar;
 import java.util.concurrent.ThreadLocalRandom;
@@ -16,6 +15,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import static org.junit.Assert.*;
 
 public class SynchronizationTest {
+    static {
+        EntityUtil.initialize();
+    }
+
     @After
     public void tearDown() {
         SynchronizationHelper.clearRuntime();
@@ -43,6 +46,7 @@ public class SynchronizationTest {
     @Test
     public void testBlockCriticalSection() {
         DistributedCriticalSection cs = new DistributedCriticalSection("TestCriticalSection");
+        cs.setRaiseException(false);
 
         // Um número aleatório de 1 a 5.
         int waitSeconds = ThreadLocalRandom.current().nextInt(1, 6);
@@ -78,6 +82,7 @@ public class SynchronizationTest {
             message.append(" - ");
             message.append(se.getMessage());
 
+            se.printStackTrace();
             fail(message.toString());
         }
 

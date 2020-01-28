@@ -1,8 +1,7 @@
 import com.ultraschemer.microweb.controller.*;
-import com.ultraschemer.microweb.domain.JwtSecurityManager;
 import com.ultraschemer.microweb.domain.RoleManagement;
 import com.ultraschemer.microweb.domain.UserManagement;
-import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
 import io.vertx.core.http.HttpMethod;
 
@@ -10,29 +9,24 @@ import io.vertx.core.http.HttpMethod;
  * Entry point principal da aplicação:
  */
 public class App extends WebAppVerticle {
+    static {
+        // Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
     @Override
     public void initialization() {
         // Verify the default user and the default role:
         UserManagement.initializeRoot();
 
-        // Initialize JWT symmetric security keys:
-        try {
-            JwtSecurityManager.initializeSKey();
-        } catch(StandardException e) {
-            // No exception is waited here:
-            e.printStackTrace();
-            System.out.println("Exiting.");
-            System.exit(-1);
-        }
-
-        // Initialize additional roles:
+        // Initialize additional roles (if not using KeyCloak):
         RoleManagement.initializeDefault();
 
         // Registra os filtros de inicialização:
-        registerFilter(new AuthorizationFilter(this.getVertx()));
+        registerFilter(new AuthorizationFilter());
 
         // Registra os controllers:
-        registerController(HttpMethod.POST, "/v0/login", new LoginController(this.getVertx()));
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
         registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
 
 		// Chamadas de gerenciamento de usuário:

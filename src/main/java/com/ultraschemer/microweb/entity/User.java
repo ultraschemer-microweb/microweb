@@ -8,7 +8,7 @@ import javax.persistence.Table;
 import java.util.UUID;
 
 @Entity
-@Table(name="`user`")
+@Table(name="user_")
 public class User extends Timeable {
     @Column(name="person_id")
     private UUID personId;
@@ -24,6 +24,15 @@ public class User extends Timeable {
 
     @Column(name="status")
     private String status;
+
+    @Column(name="central_control_id")
+    private UUID centralControlId;
+
+    @Column(name="given_name")
+    private String givenName;
+
+    @Column(name="family_name")
+    private String familyName;
 
     public UUID getPersonId() {
         return personId;
@@ -63,5 +72,29 @@ public class User extends Timeable {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public UUID getCentralControlId() {
+        return centralControlId;
+    }
+
+    public void setCentralControlId(UUID centralControlId) {
+        this.centralControlId = centralControlId;
+    }
+
+    public String getGivenName() {
+        return givenName;
+    }
+
+    public void setGivenName(String givenName) {
+        this.givenName = givenName;
+    }
+
+    public String getFamilyName() {
+        return familyName;
+    }
+
+    public void setFamilyName(String familyName) {
+        this.familyName = familyName;
     }
 }

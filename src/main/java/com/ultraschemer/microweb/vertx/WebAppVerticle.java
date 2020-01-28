@@ -8,6 +8,9 @@ import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.web.Router;
 import com.ultraschemer.microweb.domain.ServiceConfiguration;
+import io.vertx.ext.web.handler.CorsHandler;
+
+import java.util.Set;
 
 /**
  *
@@ -34,6 +37,62 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      */
     private Router getRouter() {
         return router;
+    }
+
+    protected void setCors(String path, Set<HttpMethod> methods, Set<String> headerNames) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods).allowedHeaders(headerNames));
+    }
+
+    protected void setCors(String path, HttpMethod method, String headerName) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethod(method).allowedHeader(headerName));
+    }
+
+    protected void setCors(String path, HttpMethod method) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethod(method));
+    }
+
+    protected void setCors(String path, String headerName) {
+        getRouter().route().handler(CorsHandler.create(path).allowedHeader(headerName));
+    }
+
+    protected void setCorsMethods(String path, Set<HttpMethod> methods) {
+        getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods));
+    }
+
+    protected void setCorsHeaderNames(String path, Set<String> headerNames) {
+        getRouter().route().handler(CorsHandler.create(path).allowedHeaders(headerNames));
+    }
+
+    /**
+     * A more complete method to enable CORS
+     *
+     * @param allowedOriginPattern allowed origin
+     * @param allowCredentials     allow credentials (true/false)
+     * @param maxAge               in seconds
+     * @param allowedHeaders       set of allowed headers
+     * @param methods              list of methods ... if empty all methods are allowed  @return self
+     */
+    public void enableCors(String allowedOriginPattern,
+                           boolean allowCredentials,
+                           int maxAge,
+                           Set<String> allowedHeaders,
+                           HttpMethod... methods) {
+
+        CorsHandler corsHandler = CorsHandler.create(allowedOriginPattern)
+                .allowCredentials(allowCredentials)
+                .maxAgeSeconds(maxAge);
+
+        if (methods == null || methods.length == 0) { // if not given than all
+            methods = HttpMethod.values();
+        }
+
+        for (HttpMethod method : methods) {
+            corsHandler.allowedMethod(method);
+        }
+
+        corsHandler.allowedHeaders(allowedHeaders);
+
+        getRouter().route().handler(corsHandler);
     }
 
     /**
