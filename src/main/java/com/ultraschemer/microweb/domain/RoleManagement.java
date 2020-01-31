@@ -16,6 +16,7 @@ public class RoleManagement {
         try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("user");
+            role.setStatus("active");
             session.persist(role);
             session.getTransaction().commit();
         } catch (PersistenceException pe) {
@@ -24,6 +25,7 @@ public class RoleManagement {
         try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("user-manager");
+            role.setStatus("active");
             session.persist(role);
             session.getTransaction().commit();
         } catch (PersistenceException pe) {
@@ -32,6 +34,7 @@ public class RoleManagement {
         try(Session session = EntityUtil.openTransactionSession()) {
             Role role = new Role();
             role.setName("system-manager");
+            role.setStatus("active");
             session.persist(role);
             session.getTransaction().commit();
         } catch (PersistenceException pe) {
