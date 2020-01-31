@@ -184,6 +184,7 @@ public class UserManagement {
                     // of the system - and must be granted only to the true managers of the system.
                     role = new Role();
                     role.setName("root");
+                    role.setStatus("active");
                     session.persist(role);
                 }
 
@@ -191,7 +192,10 @@ public class UserManagement {
                 User user = new User();
                 user.setName("root");
                 user.setStatus("active");
-                user.setAlias("root");
+                user.setAlias("Root User");
+                user.setGivenName("Root");
+                user.setFamilyName("User");
+
                 user.setPassword(Security.hashade("rootpasswordchangemenow"));
                 session.persist(user);
 
@@ -199,6 +203,7 @@ public class UserManagement {
                 User_Role user_role = new User_Role();
                 user_role.setUserId(user.getId());
                 user_role.setRoleId(role.getId());
+                user_role.setStatus("active");
                 session.persist(user_role);
 
                 session.getTransaction().commit();
