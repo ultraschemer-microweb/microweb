@@ -66,11 +66,12 @@ public class AuthorizationFilter implements BasicController {
 
     @Override
     public void evaluate(Route route) {
-        route.handler(BodyHandler.create()).blockingHandler(routingContext -> {
+        route.handler(BodyHandler.create());
+        route.blockingHandler(routingContext -> {
             // Primeiro, elimina todas as rotas que não são filtradas por autorização:
             String path = routingContext.request().uri();
 
-            if(isPathUnfiltered(path)) {
+            if (isPathUnfiltered(path)) {
                 routingContext.next();
             } else {
                 // Verifica a token de autorização:
@@ -78,15 +79,15 @@ public class AuthorizationFilter implements BasicController {
                 String token = null;
 
                 String regex = "^\\s*[Bb][Ee][Aa][Rr][Ee][Rr]\\s+(.+)$";
-                if(authorization != null && authorization.matches(regex)) {
+                if (authorization != null && authorization.matches(regex)) {
                     Pattern p = Pattern.compile(regex);
                     Matcher m = p.matcher(authorization);
-                    if(m.find()) {
+                    if (m.find()) {
                         token = m.group(1);
                     }
                 }
 
-                if(token == null) {
+                if (token == null) {
                     token = routingContext.request().getHeader("Microweb-Access-Token");
                 }
 

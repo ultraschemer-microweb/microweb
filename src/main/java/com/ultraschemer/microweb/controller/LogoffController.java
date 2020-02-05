@@ -6,8 +6,10 @@ import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.vertx.SimpleController;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class LogoffController extends SimpleController {
     public LogoffController() {
@@ -16,12 +18,22 @@ public class LogoffController extends SimpleController {
 
     @Override
     public void executeEvaluation(RoutingContext routingContext, HttpServerResponse response) throws StandardException {
-        JsonObject jwtToken = routingContext.get("jwtToken");
+        String authorization = routingContext.request().getHeader("Authorization");
+        String token = null;
 
-        if(jwtToken == null) {
+        String regex = "^\\s*[Bb][Ee][Aa][Rr][Ee][Rr]\\s+(.+)$";
+        if(authorization != null && authorization.matches(regex)) {
+            Pattern p = Pattern.compile(regex);
+            Matcher m = p.matcher(authorization);
+            if(m.find()) {
+                token = m.group(1);
+            }
+        }
+
+        if(token == null) {
             AuthManagement.unauthorize(routingContext.request().getHeader("Microweb-Access-Token"));
         } else {
-            AuthManagement.unauthorize(jwtToken.getString("sub"));
+            AuthManagement.unauthorize(token);
         }
 
         Message msg = new Message();

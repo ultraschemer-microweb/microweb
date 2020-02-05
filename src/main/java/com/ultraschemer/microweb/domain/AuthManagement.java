@@ -92,6 +92,9 @@ public class AuthManagement {
             ac.setStatus(VALID);
             ac.setUserId(user.getId());
 
+            // TODO: implement access token expiration here. Create a configuration named "access token ttl" and load it.
+            //  Use this TTL value to evaluate access token expiration, in authorization
+
             while (go) {
                 try {
                     ac.setToken(generateAccessToken());
@@ -115,6 +118,9 @@ public class AuthManagement {
             }
 
             authorizationData.setAccessToken(ac.getToken());
+
+            // TODO: Replace the direct use of TOKEN_TTL constant by using the constant as a default, if the
+            //  "access token ttl" isn't available:
             authorizationData.setTtl(TOKEN_TTL);
         } catch (PersistenceException pe) {
             throw new UnableToAuthenticateException("Unable to authenticate: " + pe.getLocalizedMessage() +
@@ -132,6 +138,7 @@ public class AuthManagement {
      */
     public static User authorize(String token) throws UnauthorizedException, UnableToAuthorizeException {
         // TODO: Implementar o TTL da token de autorização, para melhorar a segurança.
+        // Use the
 
         try(Session session = EntityUtil.openTransactionSession()) {
             // Carrega a token de autorização:
@@ -147,10 +154,8 @@ public class AuthManagement {
 
             AccessToken accessToken = tokens.iterator().next();
 
-            User user = session.createQuery("from User where id = :id", User.class)
+            return session.createQuery("from User where id = :id", User.class)
                     .setParameter("id", accessToken.getUserId()).list().iterator().next();
-
-            return user;
         } catch (PersistenceException pe) {
             throw new UnableToAuthorizeException("Unable to authorize: " + pe.getLocalizedMessage() +
                     "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
