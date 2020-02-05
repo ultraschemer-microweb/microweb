@@ -12,6 +12,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class AuthorizationFilter implements BasicController {
     private HashSet<String> unfilteredPaths;
@@ -72,7 +74,22 @@ public class AuthorizationFilter implements BasicController {
                 routingContext.next();
             } else {
                 // Verifica a token de autorização:
-                String token = routingContext.request().getHeader("Microweb-Access-Token");
+                String authorization = routingContext.request().getHeader("Authorization");
+                String token = null;
+
+                String regex = "^\\s*[Bb][Ee][Aa][Rr][Ee][Rr]\\s+(.+)$";
+                if(authorization != null && authorization.matches(regex)) {
+                    Pattern p = Pattern.compile(regex);
+                    Matcher m = p.matcher(authorization);
+                    if(m.find()) {
+                        token = m.group(1);
+                    }
+                }
+
+                if(token == null) {
+                    token = routingContext.request().getHeader("Microweb-Access-Token");
+                }
+
                 finishAuthorization(routingContext, token);
             }
         });

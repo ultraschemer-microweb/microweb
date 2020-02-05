@@ -16,6 +16,10 @@ public class App extends WebAppVerticle {
 
     @Override
     public void initialization() {
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Use this block only if you'll not use OpenID with KeyCloak:
+        //
+
         // Verify the default user and the default role:
         UserManagement.initializeRoot();
 
@@ -25,11 +29,18 @@ public class App extends WebAppVerticle {
         // Registra os filtros de inicialização:
         registerFilter(new AuthorizationFilter());
 
-        // Registra os controllers:
+        //
+        // End of Block
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        // Register the controllers:
         registerController(HttpMethod.POST, "/v0/login", new LoginController());
         registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
 
-		// Chamadas de gerenciamento de usuário:
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// User management calls - The controllers are only useful if you won't use OpenID with KeyCloak.
+        // The business rules these controllers expose can be useful even if KeyCloak is used
+
         registerController(HttpMethod.GET, "/v0/user/:userIdOrName", new OtherUsersController());
         registerController(HttpMethod.GET, "/v0/user", new UserController());
         registerController(HttpMethod.GET, "/v0/role", new RoleController());
@@ -39,7 +50,10 @@ public class App extends WebAppVerticle {
         registerController(HttpMethod.POST, "/v0/user", new UserCreationController());
         registerController(HttpMethod.GET, "/v0/users", new UserListController());
         registerController(HttpMethod.GET, "/v0/users/:userIdOrName",new UserListController());
-		
+
+        // End of Block
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
         // Registra os filtros de finalização:
         // Bem... eles ainda não existem...
     }
