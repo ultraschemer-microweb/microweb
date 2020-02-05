@@ -15,8 +15,6 @@ Microweb has these main characteristics:
 * Default Exception mapping and handling.
 * Default entity logging.
 
-And, currently, adding migrations, using Liquibase (not implemented, yet).
-
 The main advantages of microweb, currently, are:
 
 * Highly performant on limited environments: in Windows, 32Bit JVM, the entire system will use around 30MB of Memory.
