@@ -105,3 +105,4 @@ javacore.*.txt
 Snap.*.trc
 /ib-gateway/core.*.dmp
 /src/main/resources/log4j.xml
+/src/main/resources/hibernate.cfg.xml

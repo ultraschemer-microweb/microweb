@@ -1,3 +1,5 @@
+package com.ultraschemer.microweb;
+
 import com.ultraschemer.microweb.controller.*;
 import com.ultraschemer.microweb.domain.RoleManagement;
 import com.ultraschemer.microweb.domain.UserManagement;

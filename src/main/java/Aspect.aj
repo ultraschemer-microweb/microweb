@@ -1,1 +1,0 @@
-public aspect Aspect extends net.sf.oval.guard.GuardAspect { }
