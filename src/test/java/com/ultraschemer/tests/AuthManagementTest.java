@@ -72,11 +72,6 @@ public class AuthManagementTest {
     }
 
     @Test
-    public void testAuthenticationOfExistentUserWrongPassword() {
-        System.out.println("testAuthorization");
-    }
-
-    @Test
     public void testAuthenticationOfInexistentUser() throws Exception {
         Faker faker = new Faker(new Locale("pt-BR"));
         AuthenticationData authData = new AuthenticationData();

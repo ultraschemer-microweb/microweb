@@ -12,8 +12,8 @@ import org.hibernate.Session;
 
 import javax.persistence.NoResultException;
 import javax.persistence.PersistenceException;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static com.ultraschemer.microweb.utils.Security.validate;
 
@@ -48,8 +48,6 @@ public class AuthManagement {
     /**
      * Method used to authenticate a user from his/her basic data.
      *
-     * TODO: Authorization implementation doesn't validate TTL, yet. It's necessary to implement it.
-     *
      * @param authenticationData Necesssary data for authentication, as this data is provided by the user interface.
      * @return Authorization data, with autorization token and its TTL (time-to-live) value.
      * @throws UnauthorizedException Raised if the user can't enter in the system, due some access authentication limitation.
@@ -57,13 +55,17 @@ public class AuthManagement {
      */
     public static AuthorizationData authenticate(AuthenticationData authenticationData)
             throws UnauthorizedException, UnableToGenerateAccessTokenException, UnableToAuthenticateException {
-        // TODO: Implement authorization token TTL.
 
         AuthorizationData authorizationData = new AuthorizationData();
         boolean go = true;
+        int tokenTtl;
+        try {
+            tokenTtl = Integer.parseInt(Configuration.read("access token ttl in seconds"));
+        } catch(UnableToReadConfigurationException|NumberFormatException e) {
+            tokenTtl = TOKEN_TTL;
+        }
 
         try(Session session = EntityUtil.openTransactionSession()) {
-
             // Load the user by its name:
             User user;
             try {
@@ -92,9 +94,6 @@ public class AuthManagement {
             ac.setStatus(VALID);
             ac.setUserId(user.getId());
 
-            // TODO: implement access token expiration here. Create a configuration named "access token ttl" and load it.
-            //  Use this TTL value to evaluate access token expiration, in authorization
-
             while (go) {
                 try {
                     ac.setToken(generateAccessToken());
@@ -119,9 +118,7 @@ public class AuthManagement {
 
             authorizationData.setAccessToken(ac.getToken());
 
-            // TODO: Replace the direct use of TOKEN_TTL constant by using the constant as a default, if the
-            //  "access token ttl" isn't available:
-            authorizationData.setTtl(TOKEN_TTL);
+            authorizationData.setTtl(tokenTtl);
         } catch (PersistenceException pe) {
             throw new UnableToAuthenticateException("Unable to authenticate: " + pe.getLocalizedMessage() +
                     "\nStack Trace: " + Throwables.getStackTraceAsString(pe));
@@ -137,9 +134,14 @@ public class AuthManagement {
      * @throws UnauthorizedException Se a token não for válida ou se tiver expirada, essa exceção é lançada.
      */
     public static User authorize(String token) throws UnauthorizedException, UnableToAuthorizeException {
-        // TODO: Implementar o TTL da token de autorização, para melhorar a segurança.
-        // Use the
+        int tokenTtl;
+        try {
+            tokenTtl = Integer.parseInt(Configuration.read("access token ttl in seconds"));
+        } catch(UnableToReadConfigurationException|NumberFormatException e) {
+            tokenTtl = TOKEN_TTL;
+        }
 
+        AccessToken accessToken;
         try(Session session = EntityUtil.openTransactionSession()) {
             // Carrega a token de autorização:
             List<AccessToken> tokens = session.createQuery("from AccessToken where token = :token and status = :status", AccessToken.class)
@@ -152,7 +154,20 @@ public class AuthManagement {
                 throw new UnauthorizedException("Acesso inválido - não autorizado a continuar.");
             }
 
-            AccessToken accessToken = tokens.iterator().next();
+            accessToken = tokens.iterator().next();
+
+            // Atualiza a token de autorização:
+            if(accessToken.getUpdatedAt().before(new Date(new Date().getTime() - tokenTtl * 1000))) {
+                // Se chegou-se aqui, significa que a token não foi atualizada por um período maior do que o permitido pelo TTL
+                accessToken.setStatus(INVALID);
+                session.persist(accessToken);
+                session.getTransaction().commit();
+                throw new UnableToAuthorizeException("Authorization expired.");
+            } else {
+                accessToken.setStatus(VALID);
+                session.persist(accessToken);
+                session.getTransaction().commit();
+            }
 
             return session.createQuery("from User where id = :id", User.class)
                     .setParameter("id", accessToken.getUserId()).list().iterator().next();
@@ -168,9 +183,10 @@ public class AuthManagement {
      */
     public static void unauthorize(String token) throws UnauthorizedException, UnableToUnauthorizeException {
         try(Session session = EntityUtil.openTransactionSession()) {
-            int updated = session.createQuery("update AccessToken set status = :status where token = :token")
+            int updated = session.createQuery("update AccessToken set status = :status, updatedAt = :uat where token = :token")
                     .setParameter("status", INVALID)
                     .setParameter("token", token)
+                    .setParameter("uat", new Date())
                     .executeUpdate();
             session.getTransaction().commit();
 
