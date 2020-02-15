@@ -27,7 +27,7 @@
   $params = trim($params, '&');
 
   // Make the MicroWeb backend call, to get the Access Token and all other session information:
-  $url = $server_backend_resource . '/v1/finish-consent';
+  $url = $server_backend_resource . '/v0/finish-consent';
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url.'?'.$params ); //Url together with parameters
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //Return data instead printing directly in Browser
