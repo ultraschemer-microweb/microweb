@@ -33,7 +33,6 @@ public class AuthManagement {
 
     /**
      * TTL value for access token.
-     * TODO: Create a configuration for AccessToken TTL, since currently it's hard-coded.
      */
     private static final int TOKEN_TTL = 3600;
 
@@ -48,8 +47,8 @@ public class AuthManagement {
     /**
      * Method used to authenticate a user from his/her basic data.
      *
-     * @param authenticationData Necesssary data for authentication, as this data is provided by the user interface.
-     * @return Authorization data, with autorization token and its TTL (time-to-live) value.
+     * @param authenticationData Necessary data for authentication, as this data is provided by the user interface.
+     * @return Authorization data, with authorization token and its TTL (time-to-live) value.
      * @throws UnauthorizedException Raised if the user can't enter in the system, due some access authentication limitation.
      * @throws UnableToGenerateAccessTokenException Raised if a random authorization access token couldn't be generated.
      */
