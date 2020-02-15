@@ -159,6 +159,7 @@ public class AuthManagement {
             if(accessToken.getUpdatedAt().before(new Date(new Date().getTime() - tokenTtl * 1000))) {
                 // Se chegou-se aqui, significa que a token não foi atualizada por um período maior do que o permitido pelo TTL
                 accessToken.setStatus(INVALID);
+                accessToken.setExpiration(new Date());
                 session.persist(accessToken);
                 session.getTransaction().commit();
                 throw new UnableToAuthorizeException("Authorization expired.");
