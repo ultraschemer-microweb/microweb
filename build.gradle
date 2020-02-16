@@ -27,6 +27,8 @@ repositories {
 
 allprojects {
     apply plugin: 'java'
+    apply plugin: 'java-library'
+    apply plugin: 'maven-publish'
     apply plugin: "com.github.johnrengelman.shadow"
     
     sourceCompatibility = 1.8
@@ -37,7 +39,7 @@ dependencies {
     // This dependency is found on implementation classpath of this component and consumers.
     implementation group: 'com.google.guava', name: 'guava', version: '23.0'
 
-    // Add Vertx to the project, to serve Web REST:
+    // Add VertX to the project, to serve Web REST:
     implementation group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     implementation group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
 
@@ -73,60 +75,60 @@ dependencies {
     testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
 }
 
-// def group = 'com.ultraschemer.microweb'
-// def version = '0.1'
-// publishing {
-//     publications {
-//         mavenJava(MavenPublication) {
-//             artifactId = 'my-library'
-//             from components.java
-//             versionMapping {
-//                 usage('java-api') {
-//                     fromResolutionOf('runtimeClasspath')
-//                 }
-//                 usage('java-runtime') {
-//                     fromResolutionResult()
-//                 }
-//             }
-//             pom {
-//                 name = 'My Library'
-//                 description = 'A concise description of my library'
-//                 url = 'http://www.example.com/library'
-//                 properties = [
-//                         myProp: "value",
-//                         "prop.with.dots": "anotherValue"
-//                 ]
-//                 licenses {
-//                     license {
-//                         name = 'The Apache License, Version 2.0'
-//                         url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-//                     }
-//                 }
-//                 developers {
-//                     developer {
-//                         id = 'johnd'
-//                         name = 'John Doe'
-//                         email = 'john.doe@example.com'
-//                     }
-//                 }
-//                 scm {
-//                     connection = 'scm:git:git://example.com/my-library.git'
-//                     developerConnection = 'scm:git:ssh://example.com/my-library.git'
-//                     url = 'http://example.com/my-library/'
-//                 }
-//             }
-//         }
-//     }
-//     repositories {
-//         maven {
-//             // change URLs to point to your repos, e.g. http://my.org/repo
-//             def releasesRepoUrl = "$buildDir/repos/releases"
-//             def snapshotsRepoUrl = "$buildDir/repos/snapshots"
-//             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
-//         }
-//     }
-// }
+def _group = 'com.ultraschemer.microweb'
+def _version = '0.1'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId = 'microweb'
+            group = _group
+            version = _version
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+            pom {
+                name = 'MicroWeb'
+                description = 'Small Java REST library for Microservices based on Vert.X Web.'
+                url = 'http://www.ultraschemer.com/opensource/microweb'
+                licenses {
+                    license {
+                        name = 'The Revised BSD License'
+                        url = 'https://opensource.org/licenses/BSD-3-Clause'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'ultraschemer'
+                        name = 'Paulo Silva Filho'
+                        email = 'paulosfilho@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://git@github.com:ultraschemer/microweb.git'
+                    developerConnection = 'scm:git:git:git@github.com:ultraschemer/microweb.git'
+                    url = 'https://github.com/ultraschemer/microweb'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            // Releasing Maven files to local directory.
+            // Automate to a central http server manually, and later, automatically:
+            def releasesRepoUrl = "$buildDir/repos/releases"
+            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
+}
 
+// TODO: Sign the library files later - information: https://docs.gradle.org/current/userguide/signing_plugin.html#signing_plugin
 // signing {
 //     sign publishing.publications.mavenJava
 // }

@@ -1,0 +1,109 @@
+# A generic, single database configuration.
+
+#
+# Custom OpenID/Keycloak configurtions:
+#
+[openid]
+realm = <realm>
+server_path = http://localhost
+master_admin.name = <admin>
+master_admin.password = <password>
+
+# The OpenID client configured for this server, on Keycloak:
+client = <client-name>
+
+# Permissions to be accessible by this server, on the resources provided to
+# the client presented above. Format: 
+# available_permissions ::= RESOURCE_ID#SCOPE_ID|RESOURCE_ID|#SCOPE_ID [, available_permissions ...]
+available_permissions = #user,#role
+
+[alembic]
+#
+# Database connection URL
+#
+
+# PostgreSQL:
+sqlalchemy.url = postgresql://microweb:microweb@localhost/microweb
+
+# Oracle:
+# sqlalchemy.url = oracle+cx_oracle://microweb:microweb@localhost:1521/ORCL
+
+# path to migration scripts
+script_location = microweb
+
+# template used to generate migration files
+# file_template = %%(rev)s_%%(slug)s
+
+# timezone to use when rendering the date
+# within the migration file as well as the filename.
+# string value is passed to dateutil.tz.gettz()
+# leave blank for localtime
+# timezone =
+
+# max length of characters to apply to the
+# "slug" field
+# truncate_slug_length = 40
+
+# set to 'true' to run the environment during
+# the 'revision' command, regardless of autogenerate
+# revision_environment = false
+
+# set to 'true' to allow .pyc and .pyo files without
+# a source .py file to be detected as revisions in the
+# versions/ directory
+# sourceless = false
+
+# version location specification; this defaults
+# to microweb/versions.  When using multiple version
+# directories, initial revisions must be specified with --version-path
+# version_locations = %(here)s/bar %(here)s/bat microweb/versions
+
+# the output encoding used when revision files
+# are written from script.py.mako
+# output_encoding = utf-8
+
+[post_write_hooks]
+# post_write_hooks defines scripts or Python functions that are run
+# on newly generated revision scripts.  See the documentation for further
+# detail and examples
+
+# format using "black" - use the console_scripts runner, against the "black" entrypoint
+# hooks=black
+# black.type=console_scripts
+# black.entrypoint=black
+# black.options=-l 79
+
+# Logging configuration
+[loggers]
+keys = root,sqlalchemy,alembic
+
+[handlers]
+keys = console
+
+[formatters]
+keys = generic
+
+[logger_root]
+level = WARN
+handlers = console
+qualname =
+
+[logger_sqlalchemy]
+level = WARN
+handlers =
+qualname = sqlalchemy.engine
+
+[logger_alembic]
+level = INFO
+handlers =
+qualname = alembic
+
+[handler_console]
+class = StreamHandler
+args = (sys.stderr,)
+level = NOTSET
+formatter = generic
+
+[formatter_generic]
+format = %(levelname)-5.5s [%(name)s] %(message)s
+datefmt = %H:%M:%S

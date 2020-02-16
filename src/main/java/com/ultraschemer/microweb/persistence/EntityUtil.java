@@ -1,10 +1,16 @@
 package com.ultraschemer.microweb.persistence;
 
+import com.google.common.base.Throwables;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 /**
  * This class is the access boilerplate to Hibernate facilities.
@@ -44,6 +50,7 @@ public class EntityUtil {
         String address = System.getenv("MICROWEB_DB_ADDRESS");
         String userName = System.getenv("MICROWEB_DB_USER");
         String userPassword = System.getenv("MICROWEB_DB_PASSWORD");
+        String configurationURL = System.getenv("MICROWEB_HIBERNATE_URL_CONFIG");
 
         if(address != null) {
             System.out.println("Using custom Database Address: " + address);
@@ -57,7 +64,21 @@ public class EntityUtil {
             System.out.println("Using custom Database Password.");
         }
 
-        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder().configure();
+        StandardServiceRegistryBuilder builder = new StandardServiceRegistryBuilder();
+        if(configurationURL != null) {
+            try {
+                System.out.println("Using custom Database configuration file. " +
+                        "Environment variables configurations have preference over this file.");
+                builder.configure(new URL(configurationURL));
+            } catch(MalformedURLException me) {
+                Logger logger = LoggerFactory.getLogger(EntityUtil.class);
+                logger.error("Unable to load configuration data from address: " + configurationURL + ". " +
+                        "Using defaults. Error: " + Throwables.getStackTraceAsString(me));
+                builder.configure();
+            }
+        } else {
+            builder.configure();
+        }
 
         if(address != null) {
             builder.applySetting("hibernate.connection.url", address);
