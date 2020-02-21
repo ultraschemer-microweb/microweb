@@ -1,0 +1,219 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.ultraschemer.microweb",
+    "module": "microweb",
+    "version": "0.1",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "6.2",
+      "buildId": "bi742o5xenaohie6fwi2cebhpa"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "23.0"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-core",
+          "version": {
+            "requires": "3.7.1"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-web",
+          "version": {
+            "requires": "3.7.1"
+          }
+        },
+        {
+          "group": "commons-codec",
+          "module": "commons-codec",
+          "version": {
+            "requires": "1.12"
+          }
+        },
+        {
+          "group": "net.sf.oval",
+          "module": "oval",
+          "version": {
+            "requires": "1.90"
+          }
+        },
+        {
+          "group": "org.apache.logging.log4j",
+          "module": "log4j",
+          "version": {
+            "requires": "2.11.1"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-api",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-log4j12",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "5.4.0.Final"
+          }
+        },
+        {
+          "group": "com.squareup.okhttp3",
+          "module": "okhttp",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "com.auth0",
+          "module": "java-jwt",
+          "version": {
+            "requires": "3.8.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "microweb-0.1.jar",
+          "url": "microweb-0.1.jar",
+          "size": 134782,
+          "sha512": "84f76623032aa7d707f9134efa5ed76a96e40d5def93c1c7569319462f47fd21f43eed5b085899b578279f5749643ce78ed51f3848af88c13c5827f03273ef9f",
+          "sha256": "60a64563b17b3a95ac1cdce7f1bf88bad42235e90614ecd0cdef27d3e4a576b8",
+          "sha1": "be3493fd510b909f1d2a807b46eefae6f079cc79",
+          "md5": "873d6a234be30dc8b43cf75362d3136c"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "23.0"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-core",
+          "version": {
+            "requires": "3.7.1"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-web",
+          "version": {
+            "requires": "3.7.1"
+          }
+        },
+        {
+          "group": "commons-codec",
+          "module": "commons-codec",
+          "version": {
+            "requires": "1.12"
+          }
+        },
+        {
+          "group": "net.sf.oval",
+          "module": "oval",
+          "version": {
+            "requires": "1.90"
+          }
+        },
+        {
+          "group": "org.apache.logging.log4j",
+          "module": "log4j",
+          "version": {
+            "requires": "2.11.1"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-api",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-log4j12",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "5.4.0.Final"
+          }
+        },
+        {
+          "group": "com.squareup.okhttp3",
+          "module": "okhttp",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "com.auth0",
+          "module": "java-jwt",
+          "version": {
+            "requires": "3.8.3"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "microweb-0.1.jar",
+          "url": "microweb-0.1.jar",
+          "size": 134782,
+          "sha512": "84f76623032aa7d707f9134efa5ed76a96e40d5def93c1c7569319462f47fd21f43eed5b085899b578279f5749643ce78ed51f3848af88c13c5827f03273ef9f",
+          "sha256": "60a64563b17b3a95ac1cdce7f1bf88bad42235e90614ecd0cdef27d3e4a576b8",
+          "sha1": "be3493fd510b909f1d2a807b46eefae6f079cc79",
+          "md5": "873d6a234be30dc8b43cf75362d3136c"
+        }
+      ]
+    }
+  ]
+}

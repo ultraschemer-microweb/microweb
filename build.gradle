@@ -36,31 +36,31 @@ allprojects {
 }
 
 dependencies {
-    // This dependency is found on implementation classpath of this component and consumers.
-    implementation group: 'com.google.guava', name: 'guava', version: '23.0'
+    // This dependency is found on api classpath of this component and consumers.
+    api group: 'com.google.guava', name: 'guava', version: '23.0'
 
     // Add VertX to the project, to serve Web REST:
-    implementation group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
-    implementation group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
+    api group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
+    api group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
 
 
     // Apache utilities:
-    implementation group: 'commons-codec', name: 'commons-codec', version: '1.11'
+    api group: 'commons-codec', name: 'commons-codec', version: '1.11'
 
     // Validation and contract-programming library:
-    implementation group: 'net.sf.oval', name: 'oval', version: '1.90'
-    implementation group: 'org.apache.logging.log4j', name: 'log4j', version: '2.11.1'
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
-    implementation group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
+    api group: 'net.sf.oval', name: 'oval', version: '1.90'
+    api group: 'org.apache.logging.log4j', name: 'log4j', version: '2.11.1'
+    api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    api group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
 
     // Add Hibernate packages, as Hibernate homepage advised:
-    implementation group: 'org.hibernate', name: 'hibernate-core', version: '5.4.0.Final'
+    api group: 'org.hibernate', name: 'hibernate-core', version: '5.4.0.Final'
 
     // Add okHttp packages and functions
-    implementation group: 'com.squareup.okhttp3', name: 'okhttp', version:'4.1.0'
+    api group: 'com.squareup.okhttp3', name: 'okhttp', version:'4.1.0'
 
     // JWT decoding utilities:
-    implementation group: 'com.auth0', name: 'java-jwt', version: '3.8.3'
+    api group: 'com.auth0', name: 'java-jwt', version: '3.8.3'
 
     // Use JUnit test framework
     testImplementation group: 'junit', name: 'junit', version: '4.12'
@@ -121,8 +121,8 @@ publishing {
         maven {
             // Releasing Maven files to local directory.
             // Automate to a central http server manually, and later, automatically:
-            def releasesRepoUrl = "$buildDir/repos/releases"
-            def snapshotsRepoUrl = "$buildDir/repos/snapshots"
+            def releasesRepoUrl = "$projectDir/repos/releases"
+            def snapshotsRepoUrl = "$projectDir/repos/snapshots"
             url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
         }
     }
