@@ -69,7 +69,7 @@ public class Searcher<T> {
      * @throws QueryParseException Raised in the case of search string malformation.
      */
     public List<T> load(Map<String, String> parameterConversions, String query, int start, int count)
-            throws QueryParseException {
+    throws QueryParseException {
         try (Session session = EntityUtil.openTransactionSession()) {
             StringBuilder hql = new StringBuilder("from " + entityName + " where ");
 
@@ -269,7 +269,7 @@ public class Searcher<T> {
     }
 
     public static String createQuery(String param, String criterion, String type, List<Object> value)
-            throws StandardException {
+    throws StandardException {
         String newQuery = param + ":" + criterion + ":" + type + ":";
 
         // Evaluate value
@@ -296,7 +296,7 @@ public class Searcher<T> {
     }
 
     public static String extendQuery(String query, String linkCondition, String param, String criterion, String type, List<Object> value)
-            throws StandardException {
+    throws StandardException {
         String newQuery = query;
         if(!query.endsWith(";")) {
             newQuery += ";";

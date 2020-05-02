@@ -1,5 +1,6 @@
 package com.ultraschemer.microweb.vertx;
 
+import com.google.common.base.Throwables;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Context;
 import io.vertx.core.Vertx;
@@ -9,6 +10,7 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.ext.web.Router;
 import com.ultraschemer.microweb.domain.ServiceConfiguration;
 import io.vertx.ext.web.handler.CorsHandler;
+import net.bytebuddy.implementation.bytecode.Throw;
 
 import java.util.Set;
 
@@ -35,7 +37,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * Safe access to this Verticle Router.
      * @return A router object to be used by the caller.
      */
-    private Router getRouter() {
+    protected Router getRouter() {
         return router;
     }
 
@@ -99,7 +101,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * Http port Getter.
      * @return The Http listening port number.
      */
-    private int getHttpPort() {
+    public int getHttpPort() {
         return httpPort;
     }
 
@@ -107,7 +109,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * Http port Setter.
      * @param httpPort The port which Http server will listen.
      */
-    private void setHttpPort(int httpPort) {
+    public void setHttpPort(int httpPort) {
         this.httpPort = httpPort;
     }
 
@@ -132,6 +134,12 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * @param basicController The controller receiving the route.
      */
     protected void registerController(HttpMethod method, String path, BasicController basicController) {
+        if(basicController instanceof SimpleController) {
+            SimpleController simpleController = (SimpleController) basicController;
+            simpleController.setMethod(method);
+            simpleController.setPath(path);
+        }
+
         basicController.evaluate(getRouter().route(method, path));
     }
 
@@ -150,16 +158,24 @@ public abstract class WebAppVerticle extends AbstractVerticle {
         basicController.evaluate(getRouter().route());
     }
 
+    /**
+     * Http server port initialization. It can be customized.
+     * @return The service port
+     */
+    protected int getInitialHttpPort() throws Throwable {
+        return ServiceConfiguration.getHttpServicePort();
+    }
+
     @Override
     public void start() {
         vertx.executeBlocking(future -> {
             try {
-                this.setHttpPort(ServiceConfiguration.getHttpServicePort());
+                this.setHttpPort(getInitialHttpPort());
                 // Initialize all routes and configurations:
                 this.initialization();
                 // Return the configuration success:
                 future.complete();
-            } catch(Exception e) {
+            } catch(Throwable e) {
                 future.fail(e);
             }
         }, res -> {
@@ -174,7 +190,8 @@ public abstract class WebAppVerticle extends AbstractVerticle {
 
                 System.out.println("HTTP Server started on port " + getHttpPort());
             } else {
-                System.out.println("Configuration error: " + res.cause().getMessage());
+                System.out.println("Configuration error: " + res.cause().getMessage() +
+                        "\nStack Trace: " + Throwables.getStackTraceAsString(res.cause()));
             }
         });
     }
