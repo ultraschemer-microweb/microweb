@@ -1,8 +1,7 @@
-package com.ultraschemer.microweb.controller;
+package com.ultraschemer.microweb.vertx;
 
 import com.ultraschemer.microweb.domain.CentralUserRepositoryManagement;
 import com.ultraschemer.microweb.error.StandardException;
-import com.ultraschemer.microweb.vertx.SimpleController;
 import io.vertx.ext.web.RoutingContext;
 
 public abstract class CentralUserRepositoryAuthorizedController extends SimpleController {
@@ -20,7 +19,7 @@ public abstract class CentralUserRepositoryAuthorizedController extends SimpleCo
      * @param context The HTTP Call context, providing information to initialization.
      */
     @Override
-    protected void beforeEvaluation(RoutingContext context) throws StandardException {
+    public void beforeEvaluation(RoutingContext context) throws StandardException {
         context.put("user", CentralUserRepositoryManagement.evaluateResourcePermission(this.getMethod().toString(),
                 this.getPath(), context.request().getHeader("Authorization")));
     }

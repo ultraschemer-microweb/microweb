@@ -32,7 +32,7 @@ public abstract class SimpleController implements BasicController {
         this.errorCode = errorCode;
     }
 
-    protected BodyHandler bodyHandlerCreate() {
+    public BodyHandler bodyHandlerCreate() {
         return BodyHandler.create();
     }
 
@@ -40,7 +40,7 @@ public abstract class SimpleController implements BasicController {
      * Method used to implement "before actions" on controller
      * @param context The HTTP Call context, providing information to initialization.
      */
-    protected void beforeEvaluation(RoutingContext context) throws Throwable {
+    public void beforeEvaluation(RoutingContext context) throws Throwable {
         // To be overridden
     }
 
@@ -48,7 +48,7 @@ public abstract class SimpleController implements BasicController {
      * Method used to implement "after actions" on controller
      * @param context The Http call context, providing information to finalization.
      */
-    protected void afterEvaluation(RoutingContext context) throws Throwable {
+    public void afterEvaluation(RoutingContext context) throws Throwable {
         // To be overridden
     }
 
@@ -94,15 +94,15 @@ public abstract class SimpleController implements BasicController {
     public abstract void executeEvaluation(RoutingContext routingContext, HttpServerResponse response)
             throws Throwable;
 
-    protected String getContentType() {
+    public String getContentType() {
         return contentType;
     }
 
-    protected void setContentType(String contentType) {
+    public void setContentType(String contentType) {
         this.contentType = contentType;
     }
 
-    protected void asyncEvaluation(int errorHttpStatusCode, String errorCode,
+    public void asyncEvaluation(int errorHttpStatusCode, String errorCode,
                                    RoutingContext routingContext, AsyncExecutor executor)
     {
         HttpServerResponse response = routingContext.response();
