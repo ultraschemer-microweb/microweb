@@ -3,12 +3,15 @@ package com.ultraschemer.microweb.vertx;
 import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.Message;
 import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.error.StandardRuntimeException;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SimpleController implements BasicController {
     private String contentType;
@@ -18,7 +21,7 @@ public abstract class SimpleController implements BasicController {
     private String path;
 
     public SimpleController (int errorHttpStatusCode, String errorCode) {
-        contentType = "application/json; charset=utf-8";
+        this.contentType = "application/json; charset=utf-8";
         this.httpStatusCode = errorHttpStatusCode;
         this.errorCode = errorCode;
     }
@@ -27,6 +30,10 @@ public abstract class SimpleController implements BasicController {
         this.contentType = contentType;
         this.httpStatusCode = errorHttpStatusCode;
         this.errorCode = errorCode;
+    }
+
+    protected BodyHandler bodyHandlerCreate() {
+        return BodyHandler.create();
     }
 
     /**
@@ -47,7 +54,9 @@ public abstract class SimpleController implements BasicController {
 
     @Override
     public void evaluate(Route route) {
-        route.handler(BodyHandler.create()).blockingHandler(routingContext -> {
+        Logger logger = LoggerFactory.getLogger(SimpleController.class);
+
+        route.handler(this.bodyHandlerCreate()).blockingHandler(routingContext -> {
             HttpServerResponse response = routingContext.response();
             response.putHeader("Content-Type", contentType);
 
@@ -55,12 +64,22 @@ public abstract class SimpleController implements BasicController {
                 beforeEvaluation(routingContext);
                 executeEvaluation(routingContext, response);
                 afterEvaluation(routingContext);
-            } catch(StandardException se) {
+            } catch(StandardException|StandardRuntimeException se) {
+                // Log error messages:
+                if(logger.isDebugEnabled()) {
+                    logger.debug(Throwables.getStackTraceAsString(se));
+                }
+
                 // Ensure the correct content-type in the case of error:
                 response.putHeader("Content-Type", contentType);
                 // Finish the response:
                 response.setStatusCode(se.getHttpStatus()).end(Json.encode(se.bean()));
             } catch(Throwable t) {
+                // Log error messages:
+                if(logger.isDebugEnabled()) {
+                    logger.debug(Throwables.getStackTraceAsString(t));
+                }
+
                 Message msg = new Message(this.errorCode, this.httpStatusCode,
                         "Unknown error: " + t.getMessage(),
                         Throwables.getStackTraceAsString(t));
@@ -87,15 +106,26 @@ public abstract class SimpleController implements BasicController {
                                    RoutingContext routingContext, AsyncExecutor executor)
     {
         HttpServerResponse response = routingContext.response();
+        Logger logger = LoggerFactory.getLogger(SimpleController.class);
 
         try {
             executor.execute();
-        } catch(StandardException se) {
+        } catch(StandardException|StandardRuntimeException se) {
+            // Log error messages:
+            if(logger.isDebugEnabled()) {
+                logger.debug(Throwables.getStackTraceAsString(se));
+            }
+
             // Ensure the correct content-type in the case of error:
             response.putHeader("Content-Type", "application/json; charset=utf-8");
             // Finish the response:
             response.setStatusCode(se.getHttpStatus()).end(Json.encode(se.bean()));
         } catch(Throwable t) {
+            // Log error messages:
+            if(logger.isDebugEnabled()) {
+                logger.debug(Throwables.getStackTraceAsString(t));
+            }
+
             Message msg = new Message(errorCode, errorHttpStatusCode,
                     "Unknown error: " + t.getMessage(),
                     Throwables.getStackTraceAsString(t));
@@ -122,5 +152,3 @@ public abstract class SimpleController implements BasicController {
         this.path = path;
     }
 }
-
-

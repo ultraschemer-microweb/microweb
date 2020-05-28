@@ -4,11 +4,14 @@ import com.ultraschemer.microweb.domain.error.InvalidLinkConditionInQueryExtensi
 import com.ultraschemer.microweb.domain.error.QueryParseException;
 import com.ultraschemer.microweb.domain.error.QueryTypeUnsupportedException;
 import com.ultraschemer.microweb.domain.error.SearchConditionNotFoundException;
+import com.ultraschemer.microweb.error.ParameterDateFormat;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import org.hibernate.Session;
 import org.hibernate.query.Query;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -69,7 +72,7 @@ public class Searcher<T> {
      * @throws QueryParseException Raised in the case of search string malformation.
      */
     public List<T> load(Map<String, String> parameterConversions, String query, int start, int count)
-    throws QueryParseException {
+            throws QueryParseException {
         try (Session session = EntityUtil.openTransactionSession()) {
             StringBuilder hql = new StringBuilder("from " + entityName + " where ");
 
@@ -178,7 +181,36 @@ public class Searcher<T> {
                             if(criterion.toLowerCase().equals("in")) {
                                 throw new QueryParseException("Boolean types doesn't support the \"in\" criterion.");
                             } else {
-                                parameter = new Parameter<>(field, criterion, Boolean.parseBoolean(value));
+                                parameter = new Parameter<>(field, criterion,
+                                        Boolean.parseBoolean(value.replaceAll("\\\\(.?)", "$1")));
+                            }
+                        case "date":
+                            SimpleDateFormat fISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+                            if(criterion.toLowerCase().equals("in")) {
+                                // Split parameters by comma:
+                                parameter = new Parameter<>(field, criterion,
+                                        Arrays.stream(value.split("(?<!\\\\),"))
+                                                // Reverse the escapes:
+                                                .map(e -> {
+                                                    Date d;
+                                                    String escaped = e.replaceAll("\\\\(.?)", "$1");
+                                                    try {
+                                                        d = fISO.parse(escaped);
+                                                    } catch(ParseException pe1) {
+                                                        throw new ParameterDateFormat("Unable to parse given date: " +
+                                                                e + ". Date format must be ISO (yyyy-MM-ddTHH:mm:ss) compliant.");
+                                                    }
+                                                    return d;
+                                                })
+                                                .collect(toList()));
+                            } else {
+                                try {
+                                    parameter = new Parameter<>(field, criterion,
+                                            fISO.parse(value.replaceAll("\\\\(.?)", "$1")));
+                                } catch(ParseException pe) {
+                                    throw new ParameterDateFormat("Unable to parse given date: " +
+                                            value + ". Date format must be ISO (yyyy-MM-ddTHH:mm:ss) compliant.");
+                                }
                             }
                             break;
                         default: {
@@ -269,7 +301,7 @@ public class Searcher<T> {
     }
 
     public static String createQuery(String param, String criterion, String type, List<Object> value)
-    throws StandardException {
+            throws StandardException {
         String newQuery = param + ":" + criterion + ":" + type + ":";
 
         // Evaluate value
@@ -296,7 +328,7 @@ public class Searcher<T> {
     }
 
     public static String extendQuery(String query, String linkCondition, String param, String criterion, String type, List<Object> value)
-    throws StandardException {
+            throws StandardException {
         String newQuery = query;
         if(!query.endsWith(";")) {
             newQuery += ";";

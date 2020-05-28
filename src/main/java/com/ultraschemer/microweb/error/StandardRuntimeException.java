@@ -4,9 +4,9 @@ import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.domain.bean.Message;
 
 /**
- * This is the standard error class to all business domain classes.
+ * This is the standard error class - runtime exception version.
  */
-public class StandardException extends Exception implements StandardExceptionSignature {
+public class StandardRuntimeException extends RuntimeException implements StandardExceptionSignature {
     /**
      * This field represents the expected HTTP status to be presented to the controller and this will be
      * potentially presented to the user interface.
@@ -19,13 +19,13 @@ public class StandardException extends Exception implements StandardExceptionSig
      */
     private String code;
 
-    public StandardException(String code, int httpStatus, String message) {
+    public StandardRuntimeException(String code, int httpStatus, String message) {
         super(message);
         this.code = "ERROR:" + code;
         this.httpStatus = httpStatus;
     }
 
-    public StandardException(String code, int httpStatus, String message, Throwable cause) {
+    public StandardRuntimeException(String code, int httpStatus, String message, Throwable cause) {
         super(message, cause);
         this.code = "ERROR:" + code;
         this.httpStatus = httpStatus;

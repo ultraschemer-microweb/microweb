@@ -37,31 +37,31 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * Safe access to this Verticle Router.
      * @return A router object to be used by the caller.
      */
-    protected Router getRouter() {
+    public Router getRouter() {
         return router;
     }
 
-    protected void setCors(String path, Set<HttpMethod> methods, Set<String> headerNames) {
+    public void setCors(String path, Set<HttpMethod> methods, Set<String> headerNames) {
         getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods).allowedHeaders(headerNames));
     }
 
-    protected void setCors(String path, HttpMethod method, String headerName) {
+    public void setCors(String path, HttpMethod method, String headerName) {
         getRouter().route().handler(CorsHandler.create(path).allowedMethod(method).allowedHeader(headerName));
     }
 
-    protected void setCors(String path, HttpMethod method) {
+    public void setCors(String path, HttpMethod method) {
         getRouter().route().handler(CorsHandler.create(path).allowedMethod(method));
     }
 
-    protected void setCors(String path, String headerName) {
+    public void setCors(String path, String headerName) {
         getRouter().route().handler(CorsHandler.create(path).allowedHeader(headerName));
     }
 
-    protected void setCorsMethods(String path, Set<HttpMethod> methods) {
+    public void setCorsMethods(String path, Set<HttpMethod> methods) {
         getRouter().route().handler(CorsHandler.create(path).allowedMethods(methods));
     }
 
-    protected void setCorsHeaderNames(String path, Set<String> headerNames) {
+    public void setCorsHeaderNames(String path, Set<String> headerNames) {
         getRouter().route().handler(CorsHandler.create(path).allowedHeaders(headerNames));
     }
 
@@ -133,7 +133,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * @param path The path or resource linked to the route.
      * @param basicController The controller receiving the route.
      */
-    protected void registerController(HttpMethod method, String path, BasicController basicController) {
+    public void registerController(HttpMethod method, String path, BasicController basicController) {
         if(basicController instanceof SimpleController) {
             SimpleController simpleController = (SimpleController) basicController;
             simpleController.setMethod(method);
@@ -154,7 +154,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      *
      * @param basicController The filter controller.
      */
-    protected void registerFilter(BasicController basicController) {
+    public void registerFilter(BasicController basicController) {
         basicController.evaluate(getRouter().route());
     }
 
@@ -162,7 +162,7 @@ public abstract class WebAppVerticle extends AbstractVerticle {
      * Http server port initialization. It can be customized.
      * @return The service port
      */
-    protected int getInitialHttpPort() throws Throwable {
+    public int getInitialHttpPort() throws Throwable {
         return ServiceConfiguration.getHttpServicePort();
     }
 

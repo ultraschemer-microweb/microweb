@@ -772,6 +772,77 @@ public class CentralUserRepositoryManagement {
 
         keyCloakLogoff(credentials);
     }
+
+    public static JsonObject loadUserData(User u) throws StandardException {
+        JsonObject credentials = keyCloakLogin();
+        String setyAdminResource = Configuration.read("keycloak admin resource");
+        Request userLoadRequest = new Request.Builder()
+                .url(setyAdminResource + "/users/" + u.getCentralControlId().toString())
+                .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
+                .get()
+                .build();
+        try(Response response = client.newCall(userLoadRequest).execute()) {
+            if(response.code()>=300) {
+                throw new UnableToUpdateOpenIdUserDataException("Unable to update user data. Status code: " +
+                        response.code() + "\n\nMessage: " + Objects.requireNonNull(response.body()).string());
+            } else {
+                return new JsonObject(Objects.requireNonNull(response.body()).string());
+            }
+        } catch(Exception e) {
+            throw new UnableToUpdateOpenIdUserDataException(
+                    "Unable to update user data: " + e.getLocalizedMessage(), e);
+        } finally {
+            keyCloakLogoff(credentials);
+        }
+    }
+
+    public static void updateUserData(JsonObject userData) throws StandardException {
+        JsonObject credentials = keyCloakLogin();
+        String setyAdminResource = Configuration.read("keycloak admin resource");
+        Request updateUserRequest = new Request.Builder()
+                .url(setyAdminResource + "/users/" + userData.getString("id"))
+                .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
+                .put(FormBody.create(userData.encode(), MediaType.parse("application/json; charset=utf-8")))
+                .build();
+
+        try(Response response = client.newCall(updateUserRequest).execute()) {
+            if(response.code() >= 300) {
+                throw new UnableToUpdateUserException("Unable to update user. Status code: " +
+                        response.code() + "\n\nMessage: " + Objects.requireNonNull(response.body()).string());
+            }
+        } catch(Exception e) {
+            throw new UnableToUpdateUserException("Unable to update user " + e.getLocalizedMessage(), e);
+        } finally {
+            keyCloakLogoff(credentials);
+        }
+    }
+
+    public static void redefinePassword(User user, String password) throws StandardException {
+        JsonObject credentials = keyCloakLogin();
+        JsonObject resetPasswordData = new JsonObject();
+        resetPasswordData.put("type", "password");
+        resetPasswordData.put("temporary", false);
+        resetPasswordData.put("value", password);
+        String setyAdminResource = Configuration.read("keycloak admin resource");
+
+        Request resetPasswordRequest = new Request.Builder()
+                .url(setyAdminResource + "/users/" + user.getCentralControlId().toString() + "/reset-password")
+                .addHeader("Authorization", "Bearer " + credentials.getString("access_token"))
+                .put(FormBody.create(resetPasswordData.toString(), MediaType.parse("application/json; charset=utf-8")))
+                .build();
+
+        try(Response response = client.newCall(resetPasswordRequest).execute()) {
+            if(response.code() >= 300) {
+                throw new RedefinePasswordException("Unable to assign password. Status code: " +
+                        response.code() + "\n\nMessage: " + Objects.requireNonNull(response.body()).string());
+            }
+        } catch(Exception e) {
+            throw new RedefinePasswordException("Unable to assign password " +
+                    "to the new user: " + e.getLocalizedMessage(), e);
+        } finally {
+            keyCloakLogoff(credentials);
+        }
+    }
 }
 
 
