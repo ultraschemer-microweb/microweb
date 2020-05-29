@@ -1,10 +1,12 @@
 <?php
   require_once './common_credentials.php'; 
 
+
+
   // Request form data:
   $data = array (
     // Parameters gotten from redirected query string:
-    'state' => $_GET['state'],
+    'state' => $raw_state,
     'session_state' => $_GET['session_state'],
     'code' => $_GET['code'],
 
@@ -20,8 +22,8 @@
   }
   $params = trim($params, '&');
 
-  // Make the MicroWeb backend call, to get the Access Token and all other session information:
-  $url = $server_backend_resource . '/v0/finish-consent';
+  // Make the Microweb backend call, to get the Access Token and all other session information:
+  $url = $server_backend_resource . '/v1/finish-consent';
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url.'?'.$params ); //Url together with parameters
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1); //Return data instead printing directly in Browser

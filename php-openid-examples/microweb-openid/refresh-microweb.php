@@ -4,9 +4,9 @@
   // Request form data:
   $data = array (
     'client_id' => $client_id,
-	  'client_secret' => $client_secret,
+    'client_secret' => $client_secret,
     'refresh_token' => $_POST['refresh_token'],
-	  'grant_type' => 'refresh_token'
+    'grant_type' => 'refresh_token'
   );
 
   $params = '';
@@ -15,7 +15,7 @@
   }
   $params = trim($params, '&');
 
-  // Make the MicroWeb backend call, to get the Access Token and all other session information:
+  // Make the Microweb backend call, to get the Access Token and all other session information:
   $url = $openid_server_address . '/auth/realms/' . $realm . '/protocol/openid-connect/token';
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url);

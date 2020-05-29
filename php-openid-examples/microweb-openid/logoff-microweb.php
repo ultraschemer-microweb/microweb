@@ -14,7 +14,7 @@
   }
   $params = trim($params, '&');
 
-  // Make the MicroWeb backend call, to get the Access Token and all other session information:
+  // Make the Microweb backend call, to get the Access Token and all other session information:
   $url = $openid_server_address . '/auth/realms/' . $realm . '/protocol/openid-connect/logout';
   $ch = curl_init();
   curl_setopt($ch, CURLOPT_URL, $url);
