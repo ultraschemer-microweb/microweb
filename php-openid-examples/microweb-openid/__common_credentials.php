@@ -32,7 +32,7 @@
   $openid_server_address = 'http://<<main-openid-server>>'; 
   $redirect_uri_web = 'http://<<redirect-openid-server>>/microweb-openid/finish-consent-microweb.php';
   $redirect_uri_native = 'http://<<redirect-openid-server>>/microweb-openid/finish-consent-native-microweb.php';
-  $redirect_uri_test = urlencode('/s/finish-consent.php'); /* Also can be: 'https://<openid-server?>/s/finish-consent.php'; */
+  $redirect_uri_test = urlencode('/microweb-openid/finish-consent.php'); /* Also can be: 'https://<openid-server?>/microweb-openid/finish-consent.php'; */
   $server_backend_resource = $openid_server_address . '/microweb';
   $realm = '<<realm>>';
   $window_location_href = '<<web page to be redirected after login>>' 
