@@ -149,6 +149,22 @@ Microweb uses, necessarily, a Relational Database, which can be PostgreSQL or Or
 
 To generate this database, a set of migrations is defined, using [Python 3](https://www.python.org/) and [Alembic](https://alembic.sqlalchemy.org/en/latest/).
 
-# Project Sample
+# Project Samples
 
-<span style="color: red;">__TODO__</span>
+Two project samples are used to show how Microweb works. The first project is a simple user management project, without OpenID support. The second project is the same project, but with OpenId support, and permissions control.
+
+## Simple user manager system, without OpenID support
+
+__TODO__
+
+## simple user manager system, with OpenID support
+
+__TODO__
+
+### MVC version
+
+__TODO__
+
+### REST api version
+
+__TODO__
