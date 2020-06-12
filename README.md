@@ -146,7 +146,7 @@ As said in the section above, Microweb __is__ an MVC Framework, but it doesn't e
 
 Beyond these layers/packages, data exchanged between layers can be validated, enabling a kind of contract programming between them. This communication uses specific beans, declared in properly defined packages.
 
-# 4. External Dependencies
+# 4. Database Model and External Dependencies
 
 Microweb uses, necessarily, a Relational Database, which can be PostgreSQL or Oracle. PosgreSQL is advised, since it is the database used to develop the framework. MySQL is not supported (_yet_).
 
