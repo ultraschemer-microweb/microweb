@@ -231,18 +231,59 @@ Considering all concepts above (in the __Section 4__), we can dive into practica
 
 Two project samples are used to show how Microweb works. The first project is a simple user management project, without OpenID support. The second project is the same project, but with OpenId support, and permissions control.
 
-## Simple user manager system, without OpenID support
+Both projects are written in Java, which is the _lingua franca_ of JVM Plataform (which is called ___Java___ Platform).
+
+## 5.1. Simple user manager system, without OpenID support
+
+This sections present a simple Microweb project, with full MVC architecture, with data model, business rules, migrations, route-registering, controllers and interface generation with HTML templates.
+
+A simple user management is defined, and no OpenId, nor Permission Control is supported.
+
+This is the simplest form of use of Microweb.
+
+### 5.1.1. Project Objectives and Technical Requirements
+
+Any project must have a defined scope and objective. The objective of this project is just provide a central user repository, managed by Microweb.
+
+The next features will be provided:
+
+1. Web management interface
+1.1. Unlogged Home Page with Login
+1.2. Logged Home Page
+1.3. User Addition Form
+1.4. User Edition Form
+1.5. User Listing
+1.6. User Removal
+2. REST interface enabling all services above to a public API
+3. Attribution of user roles
+4. Simple permission control based on user roles
+6. Each user can store text documents and images on his/her accounts.
+7. Data management interface must be available to users.
+8. REST interfaces for user data management must be available to users.
+9. Read-only comments can be attached to documents and images.
+
+After defining the project objectives, project conditions are defined:
+
+1. The project must be developed in Java Programming language, to achieve the biggest public using the Java Platform.
+2. The basic project management system is Gradle.
+3. The default migration tool to be used is Alembic, which is Microweb default migration tool.
+4. The database to be used is PostgreSQL, which is Microweb default database.
+5. User interface will be generated in the Backend, using FreeMarker, which is already packaged with Microweb.
+
+Now, we can start to develop the system, starting by the project creation, and then the database definition.
+
+### 5.1.2. Creating the project
 
 __TODO__
 
-## simple user manager system, with OpenID support
+### 5.1.3. Database definition and migrations
 
 __TODO__
 
-### MVC version
+### 5.1.4. Creating the interfaces
 
 __TODO__
 
-### REST api version
+## 5.2. Simple user manager system, with OpenID support
 
 __TODO__
