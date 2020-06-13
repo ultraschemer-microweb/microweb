@@ -248,12 +248,12 @@ Any project must have a defined scope and objective. The objective of this proje
 The next features will be provided:
 
 1. Web management interface
-   1.1. Unlogged Home Page with Login
-   1.2. Logged Home Page
-   1.3. User Addition Form
-   1.4. User Edition Form
-   1.5. User Listing
-   1.6. User Removal
+   1. Unlogged Home Page with Login
+   2. Logged Home Page
+   3. User Addition Form
+   4. User Edition Form
+   5. User Listing
+   6. User Removal
 2. REST interface enabling all services above to a public API
 3. Attribution of user roles
 4. Simple permission control based on user roles
