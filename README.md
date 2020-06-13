@@ -208,10 +208,24 @@ The individual table structure, in the other hand, has a standard physical struc
 4. Tables can log their update dates with a field called __updated_at__, which is a full timestamp, with time zone enabled.
 5. The filling of __id__, __created_at__ and __updated_at__ fields are dealt by Microweb in standard ways. Se more details below.
 7. The filling of __entity_history__ logs, from all registers from all tables, are also dealt by Microweb.
+8. The __delete__ database operation is considered harmful and must be avoided almost always. An object/register state control must be ensured.
 
 This standard structure exists to fulfill specific Microweb Object-Relational data definitions, which are explained next.
 
+### 4.2.2. Microweb Object-Relational Mapping concepts
 
+Microweb framework, in the Business Layer relies on [Hibernate ORM](http://hibernate.org/), but additions to Hibernate are minimal. Hibernate is a huge project, and no addition to the library were considered relevant.
+
+However, Microwed defines four types of Entities. These entities are defined in base of a specific undestanding of the concept of Classes and Objects and its correspondent relationship with the concepts of Relation and Registers.
+
+It's a consolidated concept, in Object-Relational-Mapping that tables can be mapped to classes, and registers to objects. Microweb follows this concept but add the next additional concepts, to help to understand the lifecycle of persisted objects:
+
+1. An object with persistent lifecycle has history. This history can be logged. If an object/register can have its history logged, then it is a Loggable Entity, represented by the mapped java class __Loggable__.
+2. Each register, independent of its internal data and unique keys, has a single identity. This identity is defined by a random unique identification, stored in the field __id__. This kind of register is an __Identifiable__ Entity. Every __Identifiable__ is __Loggable__.
+3. A persistent register can have the initial period of its lifecycle (i.e, its birth) registered and known. The date of birth is stored in the field __created_at__. By convention, these objects are assigned and after that, they're read only. This kind of register is a __Createable__. Every __Createable__ is a specializtion of __Identifiable__.
+4. A persistent register can have full lifecycle and each update will be logged. The last update date and time is saved at the __updated_at__ field. This kind of object/field is __Timeable__, and every __Timeable__ object is a __Createable__ object. We can interpret __Timeable__ objects and entities, once created, can have updates and evolve through time.
+
+Considering all concepts above (in the __Section 4__), we can dive into practical details of Microweb and the best way to make such dive is through a practical sample. Migration examples can be seen in both __5.1__ and __5.2__ sections.
 
 # 5. Project Samples
 
