@@ -195,15 +195,6 @@ public class CentralUserRepositoryManagement {
                     jwt.getClaim("authorization").asMap().get("permissions");
 
             for(HashMap<String, Object> p: permissions) {
-                // Previous naive implementation:
-                // String resourceName = (String) p.get("rsname");
-                // String currentPath = method.toUpperCase() + " " + path + "#";
-                // if(resourceName.equals(currentPath)) {
-                //     authorized = true;
-                //     break;
-                // }
-
-                // Better new implementation:
                 if(Resource.resourceIsEquivalentToPath((String)p.get("rsname"), path, method)) {
                     authorized = true;
                     break;
