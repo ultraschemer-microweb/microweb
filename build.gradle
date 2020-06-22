@@ -37,7 +37,7 @@ allprojects {
 
 dependencies {
     // This dependency is found on api classpath of this component and consumers.
-    api group: 'com.google.guava', name: 'guava', version: '23.0'
+    api group: 'com.google.guava', name: 'guava', version: '20.0'
 
     // Add VertX to the project, to serve Web REST:
     api group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
@@ -80,7 +80,8 @@ dependencies {
     testImplementation group: 'com.github.javafaker', name: 'javafaker', version: '0.15'
 
     // Install Postgresql driver to project - to connect to database and test the system:
-    testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
+    // testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
+    api group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
 }
 
 def _group = 'com.ultraschemer.microweb'

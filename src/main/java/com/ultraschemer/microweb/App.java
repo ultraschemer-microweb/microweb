@@ -4,7 +4,10 @@ import com.ultraschemer.microweb.controller.*;
 import com.ultraschemer.microweb.domain.RoleManagement;
 import com.ultraschemer.microweb.domain.UserManagement;
 import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.proxy.CentralAuthorizedRegisteredReverseProxy;
+import com.ultraschemer.microweb.vertx.CentralUserRepositoryAuthorizedController;
 import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
 
 import java.util.HashSet;
@@ -153,5 +156,22 @@ public class App extends WebAppVerticle {
 
         // Registra os filtros de finalização:
         // Bem... eles ainda não existem...
+
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // Generic proxy: start an instance, to evaluate permissions for a external service - since the services above
+        // are not using permission, this proxy redirect services to itself, but adding permission control:
+        //
+
+        CentralAuthorizedRegisteredReverseProxy proxy = new CentralAuthorizedRegisteredReverseProxy(8080);
+        proxy.run();
+
+        //
+        // End of Block
+        ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    }
+
+    public static void main(String[] args) {
+        Vertx vertx = Vertx.vertx();
+        vertx.deployVerticle(new App());
     }
 }
