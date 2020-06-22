@@ -44,7 +44,7 @@ public class RegisteredReverseProxy {
 
     protected String findUriMappedServer(String uri) throws StandardException {
         for(String path: pathRegistration) {
-            if(Resource.pathAreEquivalent(path, uri)) {
+            if(Resource.pathsAreEquivalent(path, uri)) {
                 return pathToServer.get(path);
             }
         }

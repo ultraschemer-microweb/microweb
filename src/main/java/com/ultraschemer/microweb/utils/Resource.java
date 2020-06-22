@@ -16,7 +16,7 @@ public class Resource {
      * @param p2 THe second path to evaluate
      * @return Equals true, if the paths are equivalent, false, otherwise.
      */
-    public static boolean pathAreEquivalent(String p1, String p2) {
+    public static boolean pathsAreEquivalent(String p1, String p2) {
         // Remove trailing bars:
         String path1 = p1.replaceAll("/+$", "");
         String path2 = p2.replaceAll("/+$", "");
@@ -74,7 +74,7 @@ public class Resource {
         if(matcher.find()) {
             String resourceMethod = matcher.group(1);
             String resourcePath = matcher.group(2);
-            return resourceMethod.toLowerCase().equals(method.toLowerCase()) && pathAreEquivalent(resourcePath, path);
+            return resourceMethod.toLowerCase().equals(method.toLowerCase()) && pathsAreEquivalent(resourcePath, path);
         }
         return false;
     }
