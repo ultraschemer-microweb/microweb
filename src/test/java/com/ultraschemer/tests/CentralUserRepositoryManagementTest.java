@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Testing class for the reimplementation of user management over KeyCloak, instead of internal user management
@@ -97,6 +98,16 @@ public class CentralUserRepositoryManagementTest {
         List<String> userRoles3 = Collections.singletonList("bank_client");
         User u3 = CentralUserRepositoryManagement.evaluateUserAndRoles(userDataObject3, userRoles3);
         assertNotNull(u3);
+    }
+
+    /**
+     * This test is used to evaluate the path validation, to be used to evaluate resource permission in the reverse
+     * proxy
+     */
+    @Test
+    public void evaluateSimilarPaths() throws Throwable {
+        // TODO: implement tests here
+        assertTrue(true);
     }
 }
 
