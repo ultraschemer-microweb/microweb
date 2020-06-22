@@ -42,24 +42,35 @@ public class RegisteredReverseProxy {
                         return new HttpFiltersAdapter(originalRequest) {
                             @Override
                             public HttpResponse clientToProxyRequest(HttpObject httpObject) {
+                                ByteBuf buffer = null;
                                 if(httpObject instanceof DefaultHttpRequest) {
                                     DefaultHttpRequest request = (DefaultHttpRequest) httpObject;
                                     // Connect method is not supported, because it's used to proxy to HTTPS servers, which
                                     // contents are encrypted, and, so, inaccessible to this proxy evaluate permissions.
                                     if(request.getMethod().equals(HttpMethod.CONNECT)) {
                                         try {
-                                            ByteBuf buffer = Unpooled.wrappedBuffer("Unsupported connection type. SSL is not allowed in this endpoint".getBytes(StandardCharsets.UTF_8));
-                                            HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN, buffer);
-                                            HttpHeaders.setContentLength(response, buffer.readableBytes());
-                                            HttpHeaders.setHeader(response, HttpHeaders.Names.CONTENT_TYPE, "text/html");
-                                            return response;
+                                            buffer = Unpooled.wrappedBuffer(("Unsupported connection type. SSL is " +
+                                                    "not allowed in this endpoint").getBytes(StandardCharsets.UTF_8));
                                         } catch(Exception ignored) { }
                                     } else {
-                                        System.out.println("////////////////////////////////////////////////////////////////////");
-                                        System.out.println("// Starting proxy request debug");
-                                        System.out.println(request);
-                                        System.out.println("////////////////////////////////////////////////////////////////////");
+                                        if(request.getUri().charAt(0) == '/') {
+                                            System.out.println("////////////////////////////////////////////////////////////////////");
+                                            System.out.println("// Starting proxy request debug");
+                                            System.out.println(request);
+                                            System.out.println("////////////////////////////////////////////////////////////////////");
+                                        } else {
+                                            buffer = Unpooled.wrappedBuffer(("No external redirection is supported, " +
+                                                    "only direct calls to registered URIs. Aborting.")
+                                                    .getBytes(StandardCharsets.UTF_8));
+                                        }
                                     }
+                                }
+
+                                if(buffer != null) {
+                                    HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN, buffer);
+                                    HttpHeaders.setContentLength(response, buffer.readableBytes());
+                                    HttpHeaders.setHeader(response, HttpHeaders.Names.CONTENT_TYPE, "text/html");
+                                    return response;
                                 }
 
                                 return null;
