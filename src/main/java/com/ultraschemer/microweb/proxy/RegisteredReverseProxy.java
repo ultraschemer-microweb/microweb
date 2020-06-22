@@ -82,8 +82,7 @@ public class RegisteredReverseProxy {
                                                 request.setUri(host + request.getUri());
                                                 request.headers().remove("Host");
                                                 request.headers().add("Host", host);
-                                            } catch(StandardException | StandardRuntimeException se) {
-                                                // Finish the response:
+                                            } catch(StandardException|StandardRuntimeException se) {
                                                 buffer = Unpooled.wrappedBuffer(Json.encode(se.bean()).getBytes(StandardCharsets.UTF_8));
                                             } catch(Throwable t) {
                                                 buffer = Unpooled.wrappedBuffer(("Unknown error: " + t.getMessage() +

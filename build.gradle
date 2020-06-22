@@ -80,8 +80,8 @@ dependencies {
     testImplementation group: 'com.github.javafaker', name: 'javafaker', version: '0.15'
 
     // Install Postgresql driver to project - to connect to database and test the system:
-    // testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
-    api group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
+    testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
+    // api group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
 }
 
 def _group = 'com.ultraschemer.microweb'
@@ -152,15 +152,8 @@ wrapper {
     gradleVersion = '6.1.1'
 }
 
-// Example on how to run a verticle from Gradle:
-// Define the main class for the application
-// mainClassName = 'io.vertx.core.Launcher'
-// def mainVerticleName = 'com.ultraschemer.microweb.App'
-// run {
-//     args = ['run', mainVerticleName, "--launcher-class=$mainClassName"]
+// Configuration to verify deprecations:
+// tasks.withType(JavaCompile) {
+//     options.compilerArgs << '-Xlint:unchecked'
+//     options.deprecation = true
 // }
-
-tasks.withType(JavaCompile) {
-    options.compilerArgs << '-Xlint:unchecked'
-    options.deprecation = true
-}
