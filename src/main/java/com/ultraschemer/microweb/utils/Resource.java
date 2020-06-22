@@ -1,6 +1,9 @@
 package com.ultraschemer.microweb.utils;
 
-public class Path {
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Resource {
     /**
      * Evaluate path equivalence.
      *
@@ -13,7 +16,7 @@ public class Path {
      * @param p2 THe second path to evaluate
      * @return Equals true, if the paths are equivalent, false, otherwise.
      */
-    public static boolean areEquivalent(String p1, String p2) {
+    public static boolean pathAreEquivalent(String p1, String p2) {
         // Remove trailing bars:
         String path1 = p1.replaceAll("/+$", "");
         String path2 = p2.replaceAll("/+$", "");
@@ -63,5 +66,16 @@ public class Path {
         }
 
         return i1 >= path1.length() && i2 >= path2.length();
+    }
+
+    public static boolean resourceIsEquivalentToPath(String resource, String path, String method) {
+        Pattern resourcePattern = Pattern.compile("^(\\w+)\\s+(.*)#$");
+        Matcher matcher = resourcePattern.matcher(resource);
+        if(matcher.find()) {
+            String resourceMethod = matcher.group(1);
+            String resourcePath = matcher.group(2);
+            return resourceMethod.toLowerCase().equals(method.toLowerCase()) && pathAreEquivalent(resourcePath, path);
+        }
+        return false;
     }
 }

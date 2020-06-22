@@ -10,8 +10,10 @@ import com.ultraschemer.microweb.domain.error.*;
 import com.ultraschemer.microweb.entity.*;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.utils.Resource;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import jdk.nashorn.internal.runtime.regexp.joni.Regex;
 import okhttp3.*;
 import org.hibernate.Session;
 
@@ -193,9 +195,16 @@ public class CentralUserRepositoryManagement {
                     jwt.getClaim("authorization").asMap().get("permissions");
 
             for(HashMap<String, Object> p: permissions) {
-                String resourceName = (String) p.get("rsname");
-                String currentPath = method.toUpperCase() + " " + path + "#";
-                if(resourceName.equals(currentPath)) {
+                // Previous naive implementation:
+                // String resourceName = (String) p.get("rsname");
+                // String currentPath = method.toUpperCase() + " " + path + "#";
+                // if(resourceName.equals(currentPath)) {
+                //     authorized = true;
+                //     break;
+                // }
+
+                // Better new implementation:
+                if(Resource.resourceIsEquivalentToPath((String)p.get("rsname"), path, method)) {
                     authorized = true;
                     break;
                 }
