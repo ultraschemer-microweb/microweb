@@ -1,12 +1,13 @@
 package com.ultraschemer.microweb.proxy;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.handler.codec.http.HttpObject;
-import io.netty.handler.codec.http.HttpRequest;
-import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.*;
 import org.littleshoot.proxy.*;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 
 public class RegisteredReverseProxy {
@@ -41,7 +42,26 @@ public class RegisteredReverseProxy {
                         return new HttpFiltersAdapter(originalRequest) {
                             @Override
                             public HttpResponse clientToProxyRequest(HttpObject httpObject) {
-                                System.out.println(httpObject);
+                                if(httpObject instanceof DefaultHttpRequest) {
+                                    DefaultHttpRequest request = (DefaultHttpRequest) httpObject;
+                                    // Connect method is not supported, because it's used to proxy to HTTPS servers, which
+                                    // contents are encrypted, and, so, inaccessible to this proxy evaluate permissions.
+                                    if(request.getMethod().equals(HttpMethod.CONNECT)) {
+                                        try {
+                                            ByteBuf buffer = Unpooled.wrappedBuffer("Unsupported connection type. SSL is not allowed in this endpoint".getBytes(StandardCharsets.UTF_8));
+                                            HttpResponse response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.FORBIDDEN, buffer);
+                                            HttpHeaders.setContentLength(response, buffer.readableBytes());
+                                            HttpHeaders.setHeader(response, HttpHeaders.Names.CONTENT_TYPE, "text/html");
+                                            return response;
+                                        } catch(Exception ignored) { }
+                                    } else {
+                                        System.out.println("////////////////////////////////////////////////////////////////////");
+                                        System.out.println("// Starting proxy request debug");
+                                        System.out.println(request);
+                                        System.out.println("////////////////////////////////////////////////////////////////////");
+                                    }
+                                }
+
                                 return null;
                             }
                         };
