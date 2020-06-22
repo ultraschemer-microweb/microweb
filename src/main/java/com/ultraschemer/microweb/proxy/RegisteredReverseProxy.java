@@ -1,9 +1,15 @@
 package com.ultraschemer.microweb.proxy;
 
+import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.error.StandardRuntimeException;
+import com.ultraschemer.microweb.error.UnableToFindMappedServerForUriException;
+import com.ultraschemer.microweb.utils.Resource;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.*;
+import io.vertx.core.json.Json;
 import org.littleshoot.proxy.*;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 
@@ -36,6 +42,19 @@ public class RegisteredReverseProxy {
         initialize();
     }
 
+    protected String findUriMappedServer(String uri) throws StandardException {
+        for(String path: pathRegistration) {
+            if(Resource.pathAreEquivalent(path, uri)) {
+                return pathToServer.get(path);
+            }
+        }
+
+        throw new UnableToFindMappedServerForUriException("Unable to find mapped resource to be redirected by reverse proxy.");
+    }
+
+    protected void evaluateUriPermission(String method, String path, String authorization) throws StandardException {
+    }
+
     protected void initialize() {
         serverBootstrap = DefaultHttpProxyServer.bootstrap()
                 .withPort(port)
@@ -55,9 +74,22 @@ public class RegisteredReverseProxy {
                                                     "not allowed in this endpoint").getBytes(StandardCharsets.UTF_8));
                                         } catch(Exception ignored) { }
                                     } else {
-                                        if(request.getUri().charAt(0) == '/') {
-                                            // TODO: continue from here
-                                            request.setUri("" + request.getUri());
+                                        String path = request.getUri();
+                                        if(path.charAt(0) == '/') {
+                                            try {
+                                                evaluateUriPermission(request.getMethod().toString(), path, request.headers().get("Authorization"));
+                                                String host = findUriMappedServer(request.getUri());
+                                                request.setUri(host + request.getUri());
+                                                request.headers().remove("Host");
+                                                request.headers().add("Host", host);
+                                            } catch(StandardException | StandardRuntimeException se) {
+                                                // Finish the response:
+                                                buffer = Unpooled.wrappedBuffer(Json.encode(se.bean()).getBytes(StandardCharsets.UTF_8));
+                                            } catch(Throwable t) {
+                                                buffer = Unpooled.wrappedBuffer(("Unknown error: " + t.getMessage() +
+                                                        "\n\n" + Throwables.getStackTraceAsString(t))
+                                                        .getBytes(StandardCharsets.UTF_8));
+                                            }
                                         } else {
                                             buffer = Unpooled.wrappedBuffer(("No external redirection is supported, " +
                                                     "only direct calls to registered URIs. Aborting.")
@@ -79,6 +111,7 @@ public class RegisteredReverseProxy {
                     }
                 });
     }
+
     /**
      * Method used to register paths to be redirected. Any path not registered actively
      * will by deemed not found (HTTP 404 status)

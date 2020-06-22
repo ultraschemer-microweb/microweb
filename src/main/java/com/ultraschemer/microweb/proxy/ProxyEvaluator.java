@@ -1,4 +1,4 @@
-package com.ultraschemer.microweb.vertx;
+package com.ultraschemer.microweb.proxy;
 
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.UnsupportedMethodException;

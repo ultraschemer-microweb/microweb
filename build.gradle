@@ -160,3 +160,7 @@ wrapper {
 //     args = ['run', mainVerticleName, "--launcher-class=$mainClassName"]
 // }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs << '-Xlint:unchecked'
+    options.deprecation = true
+}

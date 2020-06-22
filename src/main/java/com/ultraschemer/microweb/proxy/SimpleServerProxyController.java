@@ -1,6 +1,5 @@
 package com.ultraschemer.microweb.proxy;
 
-import com.ultraschemer.microweb.vertx.ProxyEvaluator;
 import com.ultraschemer.microweb.vertx.SimpleController;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
