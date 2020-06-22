@@ -50,7 +50,7 @@ dependencies {
     // Validation and contract-programming library:
     api group: 'net.sf.oval', name: 'oval', version: '1.90'
 
-    // Loggin support:
+    // Logging support:
     api group: 'org.apache.logging.log4j', name: 'log4j', version: '2.11.1'
     api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
     api group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.25'
@@ -66,6 +66,9 @@ dependencies {
 
     // JWT decoding utilities:
     api group: 'com.auth0', name: 'java-jwt', version: '3.8.3'
+
+    // Internal reverse proxy support:
+    api group: 'org.littleshoot', name: 'littleproxy', version: '1.1.2'
 
     // Use JUnit test framework
     testImplementation group: 'junit', name: 'junit', version: '4.12'
