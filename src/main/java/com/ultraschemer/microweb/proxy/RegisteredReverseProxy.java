@@ -9,9 +9,11 @@ import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 public class RegisteredReverseProxy {
     private final HashMap<String, String> pathToServer = new HashMap<>();
+    private final LinkedList<String> pathRegistration = new LinkedList<>();
     private int port = 8080;
     HttpProxyServerBootstrap serverBootstrap;
     HttpProxyServer server;
@@ -54,10 +56,8 @@ public class RegisteredReverseProxy {
                                         } catch(Exception ignored) { }
                                     } else {
                                         if(request.getUri().charAt(0) == '/') {
-                                            System.out.println("////////////////////////////////////////////////////////////////////");
-                                            System.out.println("// Starting proxy request debug");
-                                            System.out.println(request);
-                                            System.out.println("////////////////////////////////////////////////////////////////////");
+                                            // TODO: continue from here
+                                            request.setUri("" + request.getUri());
                                         } else {
                                             buffer = Unpooled.wrappedBuffer(("No external redirection is supported, " +
                                                     "only direct calls to registered URIs. Aborting.")
@@ -87,6 +87,7 @@ public class RegisteredReverseProxy {
      */
     public void registerPath(String path, String serverAddress) {
         pathToServer.put(path, serverAddress);
+        pathRegistration.add(path);
     }
 
     /**
