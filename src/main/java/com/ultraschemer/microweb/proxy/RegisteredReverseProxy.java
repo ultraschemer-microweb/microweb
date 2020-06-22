@@ -16,6 +16,7 @@ import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.regex.Pattern;
 
 public class RegisteredReverseProxy {
     private final HashMap<String, String> pathToServer = new HashMap<>();
@@ -44,7 +45,7 @@ public class RegisteredReverseProxy {
 
     protected String findUriMappedServer(String uri) throws StandardException {
         for(String path: pathRegistration) {
-            if(Resource.pathsAreEquivalent(path, uri)) {
+            if(Resource.pathsAreEquivalent(path, uri) || Pattern.compile(path).matcher(uri).matches()) {
                 return pathToServer.get(path);
             }
         }
