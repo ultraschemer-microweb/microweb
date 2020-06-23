@@ -220,7 +220,7 @@ def upgrade():
     op.execute(f"""
         insert into configuration(name, value)
         values ('backend oauth wellknown', '{server_path}/auth/realms/{realm}/.well-known/uma2-configuration')
-        """ % ())
+        """)
     op.execute(f"""
         insert into configuration(name, value)
         values('keycloak master oauth wellknown', '{server_path}/auth/realms/master/.well-known/uma2-configuration')

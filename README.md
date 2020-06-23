@@ -1,24 +1,24 @@
 # 1. MicroWeb
 
-Microweb is HTTP Rest/Web framework, which brings MVC concepts to Vert.x, and focus in being very lightweight, reactive and with intgrated user management support, with OpenId and permissions control, provided by KeyCloak.
+Microweb is HTTP Rest/Web framework, which brings MVC concepts to Vert.x, and focus in being very lightweight, reactive and with integrated user management support, supporting OpenId and permissions control, provided by KeyCloak.
 
-The __definitive__ use case for Microweb is the development of __distributed microservices__ with strict user management control.
+The __definitive__ use case for Microweb is the development of __distributed microservices with strict user management control__.
 
 Microweb has these characteristics:
 
-* Stateless enforcing architecture, to support clusters transparently
-* Strong separation between View, Controller and Business Domain code layers, but with no hard enforcement over this
-* No default view templating support
-* Default Exception mapping and handling
-* Standard Object-Oriented/Relational mapping, using Hibernate
-* Default configuration handling
-* Default entity logging on register creation and updating
-* Default simple user management
+* Stateless enforcing architecture, to support clusters transparently.
+* No external configuration, apart database connection. No configuration through XML or annotations, availability of dynamic configuration and multiple application instance, in the same process.
+* Strong separation between View, Controller and Business Domain code layers, but no hard enforcement over this.
+* No default view templating support.
+* Default Exception mapping and handling.
+* Standard Object-Oriented/Relational mapping, using Hibernate.
+* Default entity logging on register creation and updating.
+* Default simple user management.
 * Default abstractions for Filter and Request Controllers.
-* Distributed register lockers, to define distributed critical sections
-* Default entity search routines
-* Logic Big Integer sequence implementation
-* Intrinsic support to OpenId and Resource Permission, using KeyCloak
+* Distributed register lockers, to define distributed critical sections.
+* Default entity search routines.
+* Logic Big Integer sequence implementation.
+* Intrinsic support to OpenId and Resource Permission, using KeyCloak.
 
 The main advantages of microweb, currently, are:
 
@@ -27,7 +27,7 @@ The main advantages of microweb, currently, are:
 * Full exposure of Vert.x features, including support to Reactive Programming.
 * Not very opinionated, apart the rigid separation of Controller and Domain layers.
 
-The main current limitation of microweb is that it's exclusive to PostgreSQL and Oracle databases. It can be ported to other databases, if demanded.
+The main current limitation of microweb is that it's exclusive to PostgreSQL database. It can be ported to other databases, if demanded. Oracle version exists, but it's not released nor production ready.
 
 # 2. Adding Microweb to you project
 
@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.3.0"
+  implementation "com.ultraschemer.microweb:microweb:0.4.0"
 }
 ```
 
@@ -57,7 +57,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.3.0</version>
+    <version>0.4.0</version>
   </dependency>
 </dependencies>
 ```
@@ -96,7 +96,7 @@ The last three topics are of general knowledge in Computer Sciences and Engineer
 
 Microweb can be used as a REST server library or as a full MVC library, to create Web Applications. Microweb, in its core, isn't a full MVC library, since it has no support to a standard view implementation. But, when its architecture is evaluated, it's visible the full support to MVC architecture, since, to generate views, similarly to other MVC frameworks, it's only necessary a Templating Library attached to Microweb.
 
-Since this project does not aim to be _very_ opinionated, the user can choose any Templating library to generate the views in his/her projects. By the way, in the code samples in this documentation, we use [FreeMarker](https://freemarker.apache.org/).
+Since this project does not aim to be _very_ opinionated, the user can choose any Templating library to generate the views in his/her projects. By the way, in the code samples in this documentation, we use [FreeMarker](https://freemarker.apache.org/), which is packaged, by default, with Microweb.
 
 It's even possible to use Microweb as an MVC library without a Templating Library, but the HTML text of views would need to be completely generated on fly, and programmatically.
 
@@ -148,7 +148,7 @@ Beyond these layers/packages, data exchanged between layers can be validated, en
 
 # 4. Database Model and External Dependencies
 
-Microweb uses, necessarily, a Relational Database, which can be PostgreSQL or Oracle. PosgreSQL is advised, since it is the database used to develop the framework. MySQL is not supported (_yet_).
+Microweb uses, necessarily, a Relational Database, which, currently, can only be PostgreSQL. MySQL is not supported (_yet_).
 
 To generate this database, a set of migrations is defined, using [Python 3](https://www.python.org/) and [Alembic](https://alembic.sqlalchemy.org/en/latest/).
 
@@ -166,9 +166,11 @@ For programmers with no experience in SOA Architecture and Microservices, Microw
 
 The main point is that Microweb projects are __to be used as self-contained microservices in a bigger whole of components__. This predefined default database can be shared with other microservices, but it can be used solely by the developed Microweb service. The reuse and independence is in __architectural__ level, if the whole project is developed using SOA Architecture and microservices.
 
-If you want to use a Microweb service to develop a monolitic project, the database generated by Microweb basic migrations must be the __start__ point of the entire project, as other Frameworks, like __Laravel__ or __Django__ require.
+If you want to use a Microweb service to develop a monolitic project, the database generated by Microweb basic migrations must be the __start__ point of the entire project, as other Frameworks, like __Laravel__ or __Django__ require. This approach is not commonplace in Java, since all Java Major frameworks (Spring/Spring-Boot, J2EE, Struts) are database agnostic.
 
-If you have a previous project and you yet want to use Microweb in this project, the framework use must be evaluated case by case. Contact Microweb main developer if you want consulting services on this subject.
+If you have a previous project and you yet want to use Microweb in this project, the framework use must be evaluated case by case. The basic scenario is to set up an entire new database to be used by Microweb, and isolate such database behind the new developed __microservice__. 
+
+Contact Microweb main developer if you want consulting services on this subject.
 
 ### 4.1.3. Migrations - and why Python? And why Alembic?
 
@@ -190,7 +192,7 @@ The standard database structure is considered one of the most important features
 
 Microweb database structure emphasizes safety and clarity. The next conventions are used:
 
-1. All microweb relations (tables) have a unique random identifier, which can't be identified as a sequence. To make these identifiers readable, a GUID is used for the primary key.
+1. All microweb relations (tables) have a unique random identifier, which can't be identified as a member of a sequence. A GUID is used for the primary key.
 2. No multiple field primary key is supported, to ensure simple relationship definitions between tables. It must be considered the fact that any multiple unique-constraint is correspondent to a primary key, since the relationship between unique constraints and primary keys, in a table, is a bijection.
 3. Data tables and relationship tables are indistiguishible. Microweb treat all of them simply as data, and the meaning of the tables are defined by the interpretation of these relations in the Business Layer.
 4. All tables must be named with ANSI names, so all names are considered case insensitive - and defined in case sensitive databases (as PostgreSQL) __in lowercase__.
@@ -222,8 +224,9 @@ It's a consolidated concept, in Object-Relational-Mapping that tables can be map
 
 1. An object with persistent lifecycle has history. This history can be logged. If an object/register can have its history logged, then it is a Loggable Entity, represented by the mapped java class __Loggable__.
 2. Each register, independent of its internal data and unique keys, has a single identity. This identity is defined by a random unique identification, stored in the field __id__. This kind of register is an __Identifiable__ Entity. Every __Identifiable__ is __Loggable__.
-3. A persistent register can have the initial period of its lifecycle (i.e, its birth) registered and known. The date of birth is stored in the field __created_at__. By convention, these objects are assigned and after that, they're read only. This kind of register is a __Createable__. Every __Createable__ is a specializtion of __Identifiable__.
-4. A persistent register can have full lifecycle and each update will be logged. The last update date and time is saved at the __updated_at__ field. This kind of object/field is __Timeable__, and every __Timeable__ object is a __Createable__ object. We can interpret __Timeable__ objects and entities, once created, can have updates and evolve through time.
+3. A persistent register can have the initial period of its lifecycle (i.e, its birth) registered and known. The date of birth is stored in the field __created_at__. By convention, these objects are assigned and after that, they're read only. This kind of register is a __Createable__. Every __Createable__ is a specialization of __Identifiable__.
+4. A persistent register can have full lifecycle and each update will be logged. The last update date and time is saved at the __updated_at__ field. This kind of object/field is __Timeable__, and every __Timeable__ object is a __Createable__ object. __Timeable__ objects and entities, once created, evolve through time.
+5. Register removal (deletion) is strictly avoided, and objects which need to be deleted must be of type __Timeable__ and support some kind of status control, indicating soft-delete operations.
 
 Considering all concepts above (in the __Section 4__), we can dive into practical details of Microweb and the best way to make such dive is through a practical sample. Migration examples can be seen in both __5.1__ and __5.2__ sections.
 
@@ -243,7 +246,7 @@ This is the simplest form of use of Microweb.
 
 ### 5.1.1. Project Objectives and Technical Requirements
 
-Any project must have a defined scope and objective. The objective of this project is just provide a central user repository, managed by Microweb.
+Any project must have a defined scope and objective. The objective of this project is just to provide a central user repository, managed by Microweb.
 
 The next features will be provided:
 
@@ -274,7 +277,14 @@ Now, we can start to develop the system, starting by the project creation, and t
 
 ### 5.1.2. Creating the project
 
-__TODO__
+To create the project, reserve a directory in your system, and create a new folder to store project code:
+
+```sh
+mkdir microweb-sample
+cd microweb-sample
+
+```
+
 
 ### 5.1.3. Database definition and migrations
 
