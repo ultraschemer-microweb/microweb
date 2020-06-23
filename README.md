@@ -345,6 +345,7 @@ repositories {
 }
 
 dependencies {
+    // This dependency is used by the application.
     implementation 'com.google.guava:guava:28.1-jre'
 
     // Use JUnit test framework
@@ -369,7 +370,6 @@ repositories {
 }
 
 dependencies {
-    // This dependency is used by the application.
     implementation 'com.ultraschemer.microweb:microweb:0.4.0'
 
     // Use JUnit test framework
