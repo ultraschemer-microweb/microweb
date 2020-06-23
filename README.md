@@ -345,7 +345,6 @@ repositories {
 }
 
 dependencies {
-    // This dependency is used by the application.
     implementation 'com.google.guava:guava:28.1-jre'
 
     // Use JUnit test framework
