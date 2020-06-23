@@ -387,8 +387,16 @@ Now, build the project:
 $ ./gradlew build
 ```
 ### 5.1.3. Database definition and migrations
+After creating the Java Project, with Gradle support, migrations must be attached to this project.
 
-__TODO__
+In the project root directory, execute:
+```sh
+$ git clone git@github.com:ultraschemer/microweb.git
+$ mv microweb/database-sql ./database-sql
+$ rm -Rf microweb
+
+```
+
 
 ### 5.1.4. Creating the interfaces
 
