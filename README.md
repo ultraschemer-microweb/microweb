@@ -280,12 +280,113 @@ Now, we can start to develop the system, starting by the project creation, and t
 To create the project, reserve a directory in your system, and create a new folder to store project code:
 
 ```sh
-mkdir microweb-sample
-cd microweb-sample
+$ mkdir microweb-sample
+$ cd microweb-sample
+
+Select type of project to generate:
+  1: basic
+  2: application
+  3: library
+  4: Gradle plugin
+Enter selection (default: basic) [1..4] 2
+
+Select implementation language:
+  1: C++
+  2: Groovy
+  3: Java
+  4: Kotlin
+  5: Swift
+Enter selection (default: Java) [1..5] 3
+
+Select build script DSL:
+  1: Groovy
+  2: Kotlin
+Enter selection (default: Groovy) [1..2] 1
+
+Select test framework:
+  1: JUnit 4
+  2: TestNG
+  3: Spock
+  4: JUnit Jupiter
+Enter selection (default: JUnit 4) [1..4] 1
+
+Project name (default: microweb-sample):
+Source package (default: microweb.sample):
+
+> Task :init
+Get more help with your project: https://docs.gradle.org/6.../userguide/tutorial_java_projects.html
+
+BUILD SUCCESSFUL in 32s
+2 actionable tasks: 2 executed
 
 ```
 
+Then, add a Wrapper, to your project, appending the next snippet to your `build.gradle` file:
+```groovy
+wrapper {
+    gradleVersion = '6.5'
+}
+```
 
+Then, update the wrapper, and build the project:
+```sh
+$ gradle wrapper
+```
+
+Add __Microweb__ to your project, as a dependency, changing, in `build.gradle`, this snippet:
+```groovy
+...
+...
+
+repositories {
+    // Use jcenter for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+}
+
+dependencies {
+    // This dependency is used by the application.
+    implementation 'com.google.guava:guava:28.1-jre'
+
+    // Use JUnit test framework
+    testImplementation 'junit:junit:4.12'
+}
+
+...
+...
+```
+to this:
+```groovy
+...
+...
+
+repositories {
+    // Use jcenter for resolving dependencies.
+    // You can declare any Maven/Ivy/file repository here.
+    jcenter()
+    maven {
+        url "https://ultraschemer.com/opensource/maven-repos/releases"
+    }
+}
+
+dependencies {
+    // This dependency is used by the application.
+    implementation 'com.ultraschemer.microweb:microweb:0.4.0'
+
+    // Use JUnit test framework
+    testImplementation 'junit:junit:4.12'
+}
+
+...
+...
+```
+
+Currently, Microweb doesn't support Guava versions above 20.0. Since Guava is a Microweb dependency, you can just remove the original Guava dependency defined in the original generated `build.gradle` file, as shown above.
+
+Now, build the project:
+```sh
+$ ./gradlew build
+```
 ### 5.1.3. Database definition and migrations
 
 __TODO__
