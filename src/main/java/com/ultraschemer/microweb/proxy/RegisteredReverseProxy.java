@@ -19,8 +19,9 @@ import java.util.LinkedList;
 import java.util.regex.Pattern;
 
 public class RegisteredReverseProxy {
-    private final HashMap<String, String> pathToServer = new HashMap<>();
+    private final HashMap<String, String> pathsToServer = new HashMap<>();
     private final LinkedList<String> pathRegistration = new LinkedList<>();
+    private final HashMap<String, Boolean> pathsToValidatePermission = new HashMap<>();
     private int port = 8080;
     HttpProxyServerBootstrap serverBootstrap;
     HttpProxyServer server;
@@ -46,14 +47,25 @@ public class RegisteredReverseProxy {
     protected String findUriMappedServer(String uri) throws StandardException {
         for(String path: pathRegistration) {
             if(Resource.pathsAreEquivalent(path, uri) || Pattern.compile(path).matcher(uri).matches()) {
-                return pathToServer.get(path);
+                return pathsToServer.get(path);
             }
         }
 
         throw new UnableToFindMappedServerForUriException("Unable to find mapped resource to be redirected by reverse proxy.");
     }
 
-    protected void evaluateUriPermission(String method, String path, String authorization) throws StandardException {
+    protected boolean findUriPermissionToValidate(String uri) {
+        for(String path: pathRegistration) {
+            if(Resource.pathsAreEquivalent(path, uri) || Pattern.compile(path).matcher(uri).matches()) {
+                return pathsToValidatePermission.get(path);
+            }
+        }
+
+        return false;
+    }
+
+    protected void evaluateRequestPermission(DefaultHttpRequest request) throws Throwable {
+
     }
 
     protected void initialize() {
@@ -78,7 +90,9 @@ public class RegisteredReverseProxy {
                                         String path = request.getUri();
                                         if(path.charAt(0) == '/') {
                                             try {
-                                                evaluateUriPermission(request.getMethod().toString(), path, request.headers().get("Authorization"));
+                                                if(findUriPermissionToValidate(request.getUri())) {
+                                                    evaluateRequestPermission(request);
+                                                }
                                                 String host = findUriMappedServer(request.getUri());
                                                 request.setUri(host + request.getUri());
                                                 request.headers().remove("Host");
@@ -114,13 +128,27 @@ public class RegisteredReverseProxy {
 
     /**
      * Method used to register paths to be redirected. Any path not registered actively
-     * will by deemed not found (HTTP 404 status)
+     * will by deemed forbidden (HTTP 403 status).
+     * @param path The registered path received in this proxy
+     * @param serverAddress The server address which the proxy will redirect the call
+     * @param validatePermission If true, validate permission on this path. Otherwise, the path is always permitted, if available
+     */
+    public void registerPath(String path, String serverAddress, boolean validatePermission) {
+        pathsToServer.put(path, serverAddress);
+        pathsToValidatePermission.put(path, validatePermission);
+        pathRegistration.add(path);
+    }
+
+    /**
+     * Method used to register paths to be redirected. Any path not registered actively
+     * will by deemed forbidden (HTTP 403 status). No permission will be evaluated in paths registered with this
+     * method. To register a path with permission evaluation, use the method variant with the third parameter
+     * (validatePermission).
      * @param path The registered path received in this proxy
      * @param serverAddress The server address which the proxy will redirect the call
      */
     public void registerPath(String path, String serverAddress) {
-        pathToServer.put(path, serverAddress);
-        pathRegistration.add(path);
+        registerPath(path, serverAddress, false);
     }
 
     /**
