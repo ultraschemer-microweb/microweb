@@ -5,8 +5,10 @@ import com.ultraschemer.microweb.error.UnsupportedMethodException;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import kotlin.Pair;
 import okhttp3.*;
 
+import java.util.Map;
 import java.util.Objects;
 
 public class ProxyEvaluator {
@@ -20,6 +22,12 @@ public class ProxyEvaluator {
         User user = context.get("user");
         Request.Builder builder =
                 new Request.Builder().url(serviceAddress).addHeader("userId", user.getId().toString());
+
+        // Set all request headers:
+        for(Map.Entry<String, String> entry: context.request().headers()) {
+            builder.addHeader(entry.getKey(), entry.getValue());
+        }
+
         switch (serverRequest.method()) {
             case GET:
                 req = builder.get().build();
@@ -30,6 +38,9 @@ public class ProxyEvaluator {
             case PUT:
                 req = builder.put(RequestBody.create(context.getBodyAsString(), JSON)).build();
                 break;
+            case PATCH:
+                req = builder.patch(RequestBody.create(context.getBodyAsString(), JSON)).build();
+                break;
             case DELETE:
                 req = builder.url(serviceAddress).delete().build();
                 break;
@@ -39,7 +50,12 @@ public class ProxyEvaluator {
 
         // Return response - any exception Microweb handles:
         try(Response res = client.newCall(req).execute()) {
-            response.putHeader("Content-type", res.header("Content-type"));
+            // Set all response headers:
+            for(Pair<? extends String, ? extends String> entry: res.headers()) {
+                response.putHeader(entry.getFirst(), entry.getSecond());
+            }
+
+            // Call response:
             response.setStatusCode(res.code()).end(Objects.requireNonNull(res.body()).string());
         }
     }

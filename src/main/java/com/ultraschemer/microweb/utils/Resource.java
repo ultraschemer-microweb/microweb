@@ -74,8 +74,8 @@ public class Resource {
         if(matcher.find()) {
             String resourceMethod = matcher.group(1);
             String resourcePath = matcher.group(2);
-            return resourceMethod.toLowerCase().equals(method.toLowerCase()) && pathsAreEquivalent(resourcePath, path);
-        }
-        return false;
+            return resourceMethod.toLowerCase().equals(method.toLowerCase()) &&
+                    (pathsAreEquivalent(resourcePath, path) || Pattern.compile(resourcePath).matcher(path).matches());
+        } else return Pattern.compile(resource).matcher(path).matches();
     }
 }
