@@ -396,9 +396,130 @@ In the project root directory, execute:
 $ git clone https://github.com/ultraschemer/microweb.git
 $ mv microweb/database-sql ./database-sql
 $ rm -Rf microweb
-
 ```
 
+Now you have the same database scripts and migrations originally provided by Microweb to your project.
+
+#### 5.1.3.1. Creating the database and generating it.
+Before to continue this tutorial, lets consider you have a PostgreSQL database instance available at your local machine, on default port. Your administrator user is the default `postgres` user. (_obs.: PostgreSQL is the standard microweb database. Support to other databases are being provided. Details on PostgreSQL database administration are beyond the scope of this README._)
+
+> To execute the instructions available in this section, you need a local installation of PostgreSQL CLI client programs (`psql`), a Python 3 installation (`python3`) and a local installation of PostrgreSQL C client libraries (`libpq`, `libpq-dev`, depending on your operating system).
+
+To create the database, open your __sh__ shell, if you are on Linux or MacOS, and, from the project root directory, open the file `database-sql/database-initialization-postgresql.sh` and
+change its contents from:
+
+```bash
+#!/usr/bin/env bash
+psql --command "CREATE USER microweb WITH PASSWORD 'microweb';"
+createdb -O microweb microweb
+psql --command "GRANT ALL PRIVILEGES ON DATABASE microweb TO microweb"
+psql --command 'CREATE EXTENSION "uuid-ossp"' microweb
+psql --command 'CREATE EXTENSION "pgcrypto"' microweb
+```
+
+to
+
+```bash
+#!/usr/bin/env bash
+psql --command "CREATE USER microwebsample WITH PASSWORD 'microwebsample';"
+createdb -O microwebsample microwebsample
+psql --command "GRANT ALL PRIVILEGES ON DATABASE microwebsample TO microwebsample"
+psql --command 'CREATE EXTENSION "uuid-ossp"' microwebsample
+psql --command 'CREATE EXTENSION "pgcrypto"' microwebsample
+```
+I.e, change every time the word `microweb` appears to `microwebsample`.
+
+Then, open the file `database-sql\database-finalization-postgresql.sh` and change its contents from:
+
+```bash
+#!/usr/bin/env bash
+psql --command "DROP DATABASE microweb"
+psql --command "DROP USER microweb"
+```
+
+to
+
+```bash
+#!/usr/bin/env bash
+psql --command "DROP DATABASE microwebsample"
+psql --command "DROP USER microwebsample"
+```
+
+the create the database, ensure the script will be run by a Postgresql user with administrative powers:
+
+```sh
+$ cd database-sql
+$ PGUSER=postgres; export PGUSER
+$ PGPASSWORD=postgres; export PGPASSWORD
+$ ./database-initialization-postgresql.sh
+CREATE ROLE
+GRANT
+CREATE EXTENSION
+CREATE EXTENSION
+```
+
+Change the variables `PGUSER` and `PGDATABASE` to reflect your PostgreSQL superuser. You can set other PostgreSQL environment variables, as shown [here](https://www.postgresql.org/docs/9.3/libpq-envars.html), to support your database configuration.
+
+To delete the database, just run the `database-finalization-postgresql.sh` script:
+
+```sh
+$ cd database-sql
+$ PGUSER=postgres; export PGUSER
+$ PGPASSWORD=postgres; export PGPASSWORD
+$ ./database-finalization-postgresql.sh
+DROP DATABASE
+DROP ROLE
+```
+
+Once you created the database, you'll have a `microwebsample` database, accessible by a user called `microwebsample` which password is `microwebsample`.
+
+#### 5.1.3.2. Configuring and running the migrations
+
+Once the database is created, it's necessary to run the migrations. To do so, go to project root and execute:
+
+```sh
+$ cd database-sql/python-migrations
+$ python3 -m venv venv # Create python virtual environment, just to run migrations, here
+$ source venv/bin/activate # Load the python virtual environment
+(venv) $ pip install -r requirements.txt
+...
+...
+Lots of output
+...
+...
+```
+
+Then, yet with the Python3 Virtual Environment enabled, create the migration configuration file:
+
+```sh
+$ cp alembic.ini.sample alembic.ini
+```
+
+Edit the configuration file, so Alembic can access the database you created before, changing, on it, the snippet:
+
+```python
+# PostgreSQL:
+sqlalchemy.url = postgresql://microweb:microweb@localhost/microweb
+```
+
+to:
+
+```python
+# PostgreSQL:
+sqlalchemy.url = postgresql://microwebsample:microwebsample@localhost/microwebsample
+```
+
+Save the changes, return to shell and, yet in Virtual Environment, execute:
+
+```sh
+(venv) $ alembic upgrade head
+INFO  [alembic.runtime.migration] Context impl PostgresqlImpl.
+INFO  [alembic.runtime.migration] Will assume transactional DDL.
+INFO  [alembic.runtime.migration] Running upgrade  -> 58a0c70dd98a, Create initial database.
+(venv) $
+```
+
+Now you have the initial microweb database. You can choose to continue using Alembic, or change the migration tool. Since we see no profit changing the migration tool at this moment, we'll continue this tutorial with Alembic.
 
 ### 5.1.4. Creating the interfaces
 
