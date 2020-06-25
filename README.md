@@ -543,7 +543,7 @@ This is the initial Microweb database, and a thoroughly explanation about it wil
 * `role`: Table used to register user roles in the system. When OpenID is enabled, this table is synchronized with User Roles present at KeyCloak.
 * `user__role`: __TODO__
 
-__<span style="color: red">Never ever edit these tables. They're reserved to internal microweb use.</span>__ 
+__<span style="color: red">Never ever edit these tables. They're reserved for internal microweb use.</span>__ 
 
 If you want to change the behavior of Microweb tables, create other tables to extend them. If the standard Microweb table names clash with other table names on your system, it's possible to prefix all table names, editing the Migration scripts and creating a custom microweb version to support your needs.
 
@@ -568,6 +568,19 @@ Now, let's edit the created file (in the example above, it has the name `f020117
 The entities to be created are the next:
 
 * `image`: A table to store the binary image data. To store binary image data in database is considered a __bad practice__. It's, generally, better to store them in filesystems (as S3, Hadoop, etc), but this project is a self contained example, so, to maintain simplicity, images will be stored in database. These images will be read only, and won't be updated at all. With this properties, `image` is a __Createable__ entity.
+* `document`: A table to store __text__ documents from users. Differently from images, a document can be changed and updated, so it's an entity evolving through time. These caracteristcs place `document` as a specialization of __Timeable__.
+* `user__image`: This is the relationship between images and users, linking users to their known images. This relation is not editable, so it's a __Createable__. An image can be known by many users, but it has only one original owner.
+* `user__document`: This is the relationship between documents and users, linking users to their known documents. As with `user__image`, this is a __Createable__ entity. A document can be known by many users, but it has only one original owner.
+
+Edit the generated migration file, and put these contents on it:
+
+```python
+
+```
+
+Read the comments in the file above, to understand how Alembic is used by Microweb.
+
+You'll see there are some Microweb specific functions and methods in the Migration. This is the cause we chosen Alembic to create Microweb migrations: because framework extensions are __very, very easy__ to implement. You can see all Alembic extensions provided by Microweb reading the file `database-sql/python-migrations/microweb/env.py`, customized specifically for Microweb. You can add your own customizations there, too.
 
 ### 5.1.4. Creating the interfaces
 
