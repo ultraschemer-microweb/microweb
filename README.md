@@ -26,6 +26,7 @@ The main advantages of microweb, currently, are:
 * Completely asynchronous, but supporting limited syncronicity.
 * Full exposure of Vert.x features, including support to Reactive Programming.
 * Not very opinionated, apart the rigid separation of Controller and Domain layers.
+* Extremely narrowly focused: created for SOA Distributed Architecture with REST microservices, supporting Reactive programmming and User and Permissions control.
 
 The main current limitation of microweb is that it's exclusive to PostgreSQL database. It can be ported to other databases, if demanded. Oracle version exists, but it's not released nor production ready.
 
