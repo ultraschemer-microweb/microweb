@@ -521,10 +521,53 @@ INFO  [alembic.runtime.migration] Running upgrade  -> 58a0c70dd98a, Create initi
 
 Now you have the initial microweb database. You can choose to continue using Alembic, or change the migration tool. Since we see no profit changing the migration tool at this moment, we'll continue this tutorial with Alembic.
 
-#### 5.1.3.3. Creating tables and understanding the default database schema
+#### 5.1.3.3. Understanding the default database schema
 Once you created the database, you can connect to it and you'll see this schema:
 
+![database schema](microweb-initial-schema.png)
 
+This is the initial Microweb database, and a thoroughly explanation about it will be given now, to clarify each entity use in the system, how they're related and how simple they are.
+
+* `alembic_version`: Table used by __Alembic__ to control migration use.
+* `entity_history`: Table used internally, by __Microweb__ to store the entire update history, on all __Loggable__ tables. Since to __Microweb__ register deletion is totally unadvised for Loggable entities, then no logging __delete__ support is provided. The orientation is __do not delete loggable registers from database, implement _soft_ delete__.
+* `configuration`: A key-value table, with internal configurations needed by Microweb be started up. Configurations are read only, and can be edited only externally to the system (at least this is their purpose and idea).
+* `runtime`: A key-value table with variables which can be used globally by the system, and that can be changed over time.
+* `lock_control`: A table with lock names. These locks are used by microweb to create and control distributed critical sections, to avoid the use of external queue tools. These distributed locks are dangerous and of limited use, so don't try to replace queue and messaging management systems with these distributed locks. Their use case is to provide some exclusive block control in clustered and distributed systems.
+* `user_`: __The main and central table in Microweb__. The `user_` table (with the trailing underline, to avoid clashes with the default `user` tables available in RDBMS systems, as PostgreSQL and Oracle) contains necessary user data for his/her identification. These data are mapped to be compatible with __KeyCloak__ user format and this table is synchronized with KeyCloak when OpenID support is used in a __Microweb__ project.
+* `person`: A __user__ is not necessarily a __person__. This table represents the person linked to a user. This is an optional table, __Microweb__ doesn't use this table actively, and it's here for future evolution of the platform. 
+* `email_address`: A table to store users' emails.
+* `user__email_address`: The relation of users and their e-mail addresses.
+* `phone_number`: A table to store users' phone numbers. This table, currently, is not used by __Microweb__. It's available for future __Microweb__ development.
+* `user__phone_number`: The relation of users and their phone numbers.
+* `access_token`: When OpenID is not used, the user access is controlled internally by Microweb. The access keys (used in Http Bearer authorization headers) is stored at this table.
+* `role`: Table used to register user roles in the system. When OpenID is enabled, this table is synchronized with User Roles present at KeyCloak.
+* `user__role`: __TODO__
+
+__<span style="color: red">Never ever edit these tables. They're reserved to internal microweb use.</span>__ 
+
+If you want to change the behavior of Microweb tables, create other tables to extend them. If the standard Microweb table names clash with other table names on your system, it's possible to prefix all table names, editing the Migration scripts and creating a custom microweb version to support your needs.
+
+In the future, an alternative version of Microweb, with all table names prefixed can be provided.
+
+#### 5.1.3.4. Creating the migration and needed tables
+
+Once the default Microweb database is understoood, it's the moment to create a migration, and create the table to store __documents__ and __images__ as requested in the project objectives (__Section 5.1.1__).
+
+Go to the `database-sql/python-migrations` directory, load Python3 environment and create a new Alembic migration. Read the full [Alembic Tutorial](https://alembic.sqlalchemy.org/en/latest/tutorial.html), to understand this section better.
+
+```sh
+$ cd database-sql/python-migrations
+$ source venv/bin/activate
+(venv) $ alembic revision -m "Creating document and image relations."
+Generating  ...\f020117fa010_creating_document_and_image_relations.py ...  done
+$ 
+```
+
+Now, let's edit the created file (in the example above, it has the name `f020117fa010_creating_document_and_image_relations.py` and is stored at `database-sql/python-migrations/microweb/versuibs` directory.
+
+The entities to be created are the next:
+
+* `image`: A table to store the binary image data. To store binary image data in database is considered a __bad practice__. It's, generally, better to store them in filesystems (as S3, Hadoop, etc), but this project is a self contained example, so, to maintain simplicity, images will be stored in database. These images will be read only, and won't be updated at all. With this properties, `image` is a __Createable__ entity.
 
 ### 5.1.4. Creating the interfaces
 
