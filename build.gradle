@@ -43,7 +43,6 @@ dependencies {
     api group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     api group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
 
-
     // Apache utilities:
     api group: 'commons-codec', name: 'commons-codec', version: '1.11'
 
@@ -85,7 +84,7 @@ dependencies {
 }
 
 def _group = 'com.ultraschemer.microweb'
-def _version = '0.4.0'
+def _version = '0.5.0'
 publishing {
     publications {
         mavenJava(MavenPublication) {
