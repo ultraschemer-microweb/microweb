@@ -521,6 +521,11 @@ INFO  [alembic.runtime.migration] Running upgrade  -> 58a0c70dd98a, Create initi
 
 Now you have the initial microweb database. You can choose to continue using Alembic, or change the migration tool. Since we see no profit changing the migration tool at this moment, we'll continue this tutorial with Alembic.
 
+#### 5.1.3.3. Creating tables and understanding the default database schema
+Once you created the database, you can connect to it and you'll see this schema:
+
+
+
 ### 5.1.4. Creating the interfaces
 
 __TODO__
