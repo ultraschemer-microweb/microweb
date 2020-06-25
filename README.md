@@ -42,7 +42,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.4.0"
+  implementation "com.ultraschemer.microweb:microweb:0.5.0"
 }
 ```
 
@@ -57,7 +57,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.4.0</version>
+    <version>0.5.0</version>
   </dependency>
 </dependencies>
 ```
@@ -282,6 +282,7 @@ To create the project, reserve a directory in your system, and create a new fold
 ```sh
 $ mkdir microweb-sample
 $ cd microweb-sample
+$ gradle init
 
 Select type of project to generate:
   1: basic
@@ -370,7 +371,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.ultraschemer.microweb:microweb:0.4.0'
+    implementation 'com.ultraschemer.microweb:microweb:0.5.0'
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
@@ -391,7 +392,7 @@ After creating the Java Project, with Gradle support, migrations must be attache
 
 In the project root directory, execute:
 ```sh
-$ git clone git@github.com:ultraschemer/microweb.git
+$ git clone https://github.com/ultraschemer/microweb.git
 $ mv microweb/database-sql ./database-sql
 $ rm -Rf microweb
 
