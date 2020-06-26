@@ -640,7 +640,7 @@ def upgrade():
                     sa.Column('contents', sa.Text(), nullable=False),
                     # A status for document. 'regular' is de default document status, and its default format too.
                     # Other status can be set in the future.
-                    sa.Column('status', sa.Text(), nullable=False, server_default='regular'))
+                    sa.Column('status', sa.String(16), nullable=False, server_default='regular'))
 
     # Documents are quintessentially Timeable:
     op.set_timeable('document')
@@ -687,7 +687,7 @@ After you created the database, and customized it, it's necessary to map the cre
 
 Let's start configuring Hibernate, generating a configuration file, which will be placed at the project `resources` folder.
 
-#### 5.1.4.1. Creating the hibernate.cfg.xml file
+#### 5.1.4.1. Creating the hibernate.cfg.xml file and the Entity Mappings
 Microweb has a default hibernate.cfg.xml file, which can be viewed [here](https://github.com/ultraschemer/microweb/blob/master/src/main/resources/_hibernate.cfg.xml).
 
 Just copy this file and save it at `src/main/resources/hibernate.cfg.xml` file.
@@ -711,9 +711,6 @@ Edit it to:
         <property name="hibernate.connection.pool_size">16</property>
         <property name="show_sql">true</property>
         <property name="dialect">org.hibernate.dialect.PostgreSQL93Dialect</property>
-        <!--
-         TODO: Study how to use the DDL generator - and then enable it suitably. Meanwhile it's completely disabled.
-         property name="hibernate.hbm2ddl.auto">update</property -->
 
         <!-- The entity mappings: -->
         <mapping class="com.ultraschemer.microweb.entity.AccessToken"/>
@@ -738,8 +735,293 @@ Edit it to:
 </hibernate-configuration>
 ```
 
-As you can see, above, ... 
-### 5.1.5. Creating the interfaces
+As you can see, above, all default Microweb tables have their default mappings already defined, and then four additional mappings are added to list.
+
+These mappings are the tables created in the migrations, above.
+
+The source code for these entity mappings are shown below:
+
+File: `src/main/java/microweb/sample/entity/Image.java`
+
+```java
+package microweb.sample.entity;
+
+import com.ultraschemer.microweb.persistence.Createable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "image")
+public class Image extends Createable {
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "base64data")
+    private String base64data;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getBase64data() {
+        return base64data;
+    }
+
+    public void setBase64data(String base64data) {
+        this.base64data = base64data;
+    }
+}
+
+```
+
+File: `src/main/java/microweb/sample/entity/Document.java`
+
+```java
+package microweb.sample.entity;
+
+import com.ultraschemer.microweb.persistence.Timeable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+
+@Entity
+@Table(name = "document")
+public class Document extends Timeable {
+    @Column(name = "name")
+    private String name;
+
+    @Column(name = "contents")
+    private String contents;
+
+    @Column(name = "status")
+    private String status;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getContents() {
+        return contents;
+    }
+
+    public void setContents(String contents) {
+        this.contents = contents;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}
+```
+
+File: `src/main/java/microweb/sample/entity/User_Image.java`
+
+```java
+package microweb.sample.entity;
+
+import com.ultraschemer.microweb.persistence.Timeable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import java.util.UUID;
+
+@Entity
+@Table(name = "user__image")
+public class User_Image extends Timeable {
+    @Column(name = "alias")
+    private String alias;
+
+    @Column(name = "image_id")
+    private UUID imageId;
+
+    @Column(name = "user_id")
+    private UUID userId;
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
+    public UUID getImageId() {
+        return imageId;
+    }
+
+    public void setImageId(UUID imageId) {
+        this.imageId = imageId;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+}
+```
+
+File: `src/main/java/microweb/sample/entity/User_Document.java`
+
+```java
+package microweb.sample.entity;
+
+import com.ultraschemer.microweb.persistence.Timeable;
+
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.Table;
+import java.util.UUID;
+
+@Entity
+@Table(name = "user__document")
+public class User_Document extends Timeable {
+    @Column(name = "alias")
+    private String alias;
+
+    @Column(name = "document_id")
+    private UUID documentId;
+
+    @Column(name = "user_id")
+    private UUID userId;
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
+    public UUID getDocumentId() {
+        return documentId;
+    }
+
+    public void setDocumentId(UUID documentId) {
+        this.documentId = documentId;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+}
+```
+
+Some points must be considered, in the mappings above:
+
+1. No boilerplate for __Loggable__, __Identifiable__, __Createable__ and __Timeable__ entities must be written: Just use inheritance from these classes, in the entity mappings, as it's shown in the classes __Image__, __Document__, __User_Image__ and __User_Document__, above.
+2. All foreign keys must be explicitly declared, and they must be of __java.util.UUID__ type. Hibernate will deal with them transparently.
+3. Table and column name mappings are enforced, since table naming conventions and Java classes name conventions differ between them.
+4. All mappings are isolated in its own package, named __microweb.sample.entity__, in this project. Use this kind of package isolation to ensure __separation of concerns__, and to isolate the Data Model from the other layers of the system.
+
+### 5.1.5. The Controller Layer and Routing Mapping
+
+Database mapping is a __huge__ part of Microweb, not in complexity, but in importance. But, after understanding how the mapping works, how the migrations work and how to apply the concepts of __Timeable__ and __Createable__ (and concepts of __Identifiable__ and __Loggable__, by analogy), the next step is to start to structure the application, per se.
+
+As can be seen in this sample, no system entry-point has been defined, and the main class, named __microweb.sample.App__ is just an empty class, with a _"Hello World"_ implementation.
+
+Then, let's structure the application, creating the most relevant class in Microweb, the WebAppVerticle.
+
+### 5.1.5.1. The web application entry-point
+
+Let's change the project main class from its current state (_"Hello World"_) to a Web App verticle.
+
+change the file `src/main/java/microweb/sample` from:
+
+```java
+/*
+ * This Java source file was generated by the Gradle 'init' task.
+ */
+package microweb.sample;
+
+public class App {
+    public String getGreeting() {
+        return "Hello world.";
+    }
+
+    public static void main(String[] args) {
+        System.out.println(new App().getGreeting());
+    }
+}
+
+```
+
+to:
+
+```java
+package microweb.sample;
+
+import com.ultraschemer.microweb.controller.AuthorizationFilter;
+import com.ultraschemer.microweb.controller.LoginController;
+import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.domain.RoleManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+
+// 1. Specialize WebAppVerticle:
+public class App extends WebAppVerticle {
+    static {
+        // 2. Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
+    @Override
+    public void initialization() throws Exception {
+        // 3. Verify the default user and the default role:
+        UserManagement.initializeRoot();
+
+        // 4. Initialize additional roles (if not using KeyCloak):
+        RoleManagement.initializeDefault();
+
+        // 5. Registra os filtros de inicialização:
+        registerFilter(new AuthorizationFilter());
+
+        // 6. Register the controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+    }
+
+    public static void main(String[] args) {
+        // 7. Create an Application Vertx instance. Vert.x is, to Microweb, the entire application component container:
+        Vertx vertx = Vertx.vertx();
+
+        // 8. Deploy the WebAppVerticle:
+        vertx.deployVerticle(new App());
+    }
+}
+
+```
+
+With this modifications, a new Web REST application is built, with only two operations: login and logoff.
+
+Let's run it, and, then, understand each point of such program.
+
+### 5.1.6. Creating the interfaces
 
 __TODO__
 
