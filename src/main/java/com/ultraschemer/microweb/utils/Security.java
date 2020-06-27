@@ -1,12 +1,11 @@
 package com.ultraschemer.microweb.utils;
 
-import org.apache.commons.codec.binary.Base64;
-
 import javax.crypto.SecretKey;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Base64;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -41,8 +40,8 @@ public class Security {
         new Random().nextBytes(salt);
 
         byte hash[] = hashPassword(password.toCharArray(), salt, PBKDF2_CYCLES, PBKDF2_SHA512_LENGTH);
-        String base64Salt = Base64.encodeBase64String(salt);
-        String base64Hash = Base64.encodeBase64String(hash);
+        String base64Salt = Base64.getEncoder().encodeToString(salt);
+        String base64Hash = Base64.getEncoder().encodeToString(hash);
 
         return base64Salt + ":" + base64Hash;
     }
@@ -55,11 +54,11 @@ public class Security {
      * @return The hashed password, in the format: [Salt, bytes in Base64]:[Password hash, bytes in Base64]
      */
     public static String hashade(String password, String salt) throws InvalidKeySpecException, NoSuchAlgorithmException {
-        byte bsalt[] = Base64.decodeBase64(salt.getBytes());
+        byte bsalt[] = Base64.getDecoder().decode(salt.getBytes());
 
         byte hash[] = hashPassword(password.toCharArray(), bsalt, PBKDF2_CYCLES, PBKDF2_SHA512_LENGTH);
-        String base64Salt = Base64.encodeBase64String(bsalt);
-        String base64Hash = Base64.encodeBase64String(hash);
+        String base64Salt = Base64.getEncoder().encodeToString(bsalt);
+        String base64Hash = Base64.getEncoder().encodeToString(hash);
 
         return base64Salt + ":" + base64Hash;
     }

@@ -43,9 +43,6 @@ dependencies {
     api group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
     api group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
 
-    // Apache utilities:
-    api group: 'commons-codec', name: 'commons-codec', version: '1.11'
-
     // Validation and contract-programming library:
     api group: 'net.sf.oval', name: 'oval', version: '1.90'
 
@@ -80,7 +77,6 @@ dependencies {
 
     // Install Postgresql driver to project - to connect to database and test the system:
     testImplementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
-    // api group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
 }
 
 def _group = 'com.ultraschemer.microweb'
