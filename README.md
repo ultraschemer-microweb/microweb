@@ -43,7 +43,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.5.0"
+  implementation "com.ultraschemer.microweb:microweb:0.5.1"
 }
 ```
 
@@ -58,7 +58,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.1</version>
   </dependency>
 </dependencies>
 ```
@@ -373,7 +373,7 @@ repositories {
 
 dependencies {
     // The entire Microweb framework:
-    implementation 'com.ultraschemer.microweb:microweb:0.5.0'
+    implementation 'com.ultraschemer.microweb:microweb:0.5.1'
 
     // Database driver:
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
@@ -1002,10 +1002,10 @@ public class App extends WebAppVerticle {
         // 4. Initialize additional roles (if not using KeyCloak):
         RoleManagement.initializeDefault();
 
-        // 5. Register initialization filter:
+        // 5. Register authorization filter:
         registerFilter(new AuthorizationFilter());
 
-        // 6. Register the controllers:
+        // 6. Register controllers:
         registerController(HttpMethod.POST, "/v0/login", new LoginController());
         registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
     }
@@ -1205,18 +1205,31 @@ The main App class implementation (class __com.microweb.sample.App__), as shown 
 
 Each comment point is presented below:
 
-1. Specialize WebAppVerticle:
-2.
-3.
-4.
-5.
-6.
-7.
-8.
+1. __Specialize WebAppVerticle__: Microweb provides a Standard Web Application class. This class is __WebAppVerticle__, which is a __Verticle__ (See Vert.x documentation about [Verticles](https://vertx.io/docs/vertx-core/java/#_verticles)). You can create how many Web Application Verticles you want, but all these Verticles will share a single database instance. Below this design choice is better explained.
+2. __Initialize default entity util here__: `EntityUtil` is the Hibernate Database Session Factory __Singleton__ Microweb uses to configure and load __all of WebAppVerticles__ in a program or application. The WebAppVerticles aren't singletons, but the Database Instance, for the entire system, __really is__. And why? Because Microweb has been develped to __centralize users and permissions control in distributed systems__ and users' data rely in a __central database__, having no meaning to permit multiple databases in WebAppVerticles configuration and loading context. Furthermore, business rules are completely independent from Microweb architecture and structure, so you can create another database connections elsewhere, these connections being Singletons or not, and use these connections in the manner suitable to you, but __outside__ Microweb architectural structure. Always initialize `EntityUtil`, in a static scope, in your WebAppVerticle. You can call `EntityUtil.initialize()` multiple times, that only in the first effective call the database connection singleton will be configured. In all other attempts, the initialization will be skipped, since it has already been performed. There are optional parametes to `EntityUtil.initialize()`, so you don't need to be bound to the standard Hibernate configuration file.
+3. __Verify the default user and the default role__: This sample doesn't use KeyCloak nor OpenId to centrally manage user data, so it's needed to create, at least, a single user to the system. If you provide alternative ways to create your users, this step can be skipped. This call create a user called __root__, whose password is __rootpasswordchangemenow__. It's strongly advised to no skip this step, if you are not using OpenID.
+4. __Initialize additional roles (if not using KeyCloak)__: The existence of a user registered in database is not enough to run a WebAppVerticle. Default roles are needed to do so. This call generate such roles. These roles can be ignored in the majority of time, but, due design choices made in Microweb, these roles are necessary to start WebAppVerticles up. These roles can be used, later, to implement a custom permission control in the system.
+5. __Register initialization filter__: Microweb supports registration of HTTP routes and filters. Without support of OpenID, the authorization is implemented as a filter, which must be registered __before__ the registration of all other filters and routes.
+6. __Register controllers__: Microweb supports registration of Route controllers, which support all HTTP Methods supported by Vert.x Web, and Vert.x routing paths. No path Regexen are supported currently, but this support can be easily added in the future. Each route is vinculated to a Controller. In this sample, both registered routes (for Login and for Logoff) are linked to Standard Controllers provided by Microweb to deal with Login and Logoff calls. Later we'll see how to implement other types of Login/Logoff handling.
+7. __Create the Application Vert.x instance__: Now we're seeing the application main function, creating a Vert.x instance to load the created WebAppVerticle.
+8. __Deploy the WebAppVerticle__: Created the application Vert.x instance, it's time to deploy the verticle and start to run the application _per se_. Vert.x is the container used by Microweb, much alike [Spring Application Context container](https://docs.spring.io/spring/docs/3.2.x/spring-framework-reference/html/beans.html), or J2EE Enterprise Java Beans container. But, Microweb doesn't use Inversion-of-Control, Dependency injection, or Entity Factory to provide software componentry. Microweb uses __Vert.x__ message passing to modularize systems internally - and Microweb integrates with external services through REST. All these techniques will be presented later.
 
-### 5.1.6. Creating the interfaces
+Now, all steps to create a Microweb application have been presented. It's time to implement customized controllers, business rules and user interfaces.
 
-__TODO__
+### 5.1.6. Implementing custom Features: Controllers, Business Rules and Views
+
+The best way to understand Microweb is to implement an entire feature, and them implement others in analog ways.
+
+Let's create a static webroot folder, and structure a web application on it.
+
+#### 5.1.6.1. Static webroot folder and static data
+
+TODO
+
+#### 5.1.6.2. User login, with HTML GUI
+The default User Login is a REST API. This is not suitable to human users. Let's create a standard login interface
+
+#### 5.1.6.2. User logoff, with HTML GUI
 
 ## 5.2. Simple user manager system, with OpenID support
 

@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class AuthorizationFilter implements BasicController {
-    private HashSet<String> unfilteredPaths;
+    private final HashSet<String> unfilteredPaths;
 
     public AuthorizationFilter() {
         unfilteredPaths = new HashSet<>();
@@ -25,7 +25,7 @@ public class AuthorizationFilter implements BasicController {
         unfilteredPaths.add("/v0/login");
     }
 
-    private boolean isPathUnfiltered(String path) {
+    protected boolean isPathUnfiltered(String path) {
         for(String unfiltered: unfilteredPaths) {
             if(unfiltered.equals(path)) {
                 return true;
@@ -39,7 +39,7 @@ public class AuthorizationFilter implements BasicController {
         unfilteredPaths.add(path);
     }
 
-    private void executeHandler(RoutingContext routingContext, AsyncExecutor consumer) {
+    protected void executeHandler(RoutingContext routingContext, AsyncExecutor consumer) {
         try {
             consumer.execute();
         } catch (StandardException se) {
@@ -56,7 +56,7 @@ public class AuthorizationFilter implements BasicController {
         }
     }
 
-    private void finishAuthorization(final RoutingContext routingContext, final String token) {
+    protected void finishAuthorization(final RoutingContext routingContext, final String token) {
         this.executeHandler(routingContext, () -> {
             User u = AuthManagement.authorize(token);
             routingContext.put("user", u);
