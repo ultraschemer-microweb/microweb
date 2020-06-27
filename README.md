@@ -1125,7 +1125,7 @@ It's possible to see the login entry-point is REST. Microweb is made essentially
 With the returned access token, it's possible to perform the only access restricted endpoint, logoff:
 
 ```sh
-$ curl http://localhost:48080/v0/login -H 'Content-type: application/json' \
+$ curl http://localhost:48080/v0/logoff -H 'Content-type: application/json' \
 -H 'Authorization: Bearer p>?9H780ZLb%>$Ni/Qam' -v
 
 * STATE: INIT => CONNECT handle 0x600084ef8; line 1617 (connection #-5000)
