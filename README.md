@@ -1425,6 +1425,12 @@ Let's start editing the `DefaultHomePageController`, to provide a default home p
 
 Change the original implementation of such class to:
 
+```Java
+// TODO
+```
+
+Now let's explain all points commented in the code, above.
+
 __TODO:__ Continue from here.
 
 #### 5.1.6.2. User logoff, with HTML GUI
