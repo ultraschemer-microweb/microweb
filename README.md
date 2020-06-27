@@ -1224,13 +1224,15 @@ Let's create a static webroot folder, and structure a web application on it.
 
 #### 5.1.6.1. Static webroot folder and static data
 
-TODO
+__<span style="color: blue">TODO</span>__
 
 #### 5.1.6.2. User login, with HTML GUI
 The default User Login is a REST API. This is not suitable to human users. Let's create a standard login interface
 
 #### 5.1.6.2. User logoff, with HTML GUI
 
+__<span style="color: blue">TODO</span>__
+
 ## 5.2. Simple user manager system, with OpenID support
 
-__TODO__
+__<span style="color: blue">TODO</span>__
