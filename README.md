@@ -1226,27 +1226,24 @@ Let's create a static webroot folder, and structure a web application on it.
 
 Every web application needs some static files, and with this sample, it's no different. Since Microweb is Vert.x, let's create a static folder, put basic HTML and CSS there
 
-#### 5.1.6.2. User login, with HTML GUI
-The default User Login is a REST API. This is not suitable to human users. Let's create a standard login interface. In the `initialization()` method, of `App` class, put this snippet after default initializations:
-
 ```Java
-    // Set this in the initialization() method of microweb.sample.App class:
+// Set this in the initialization() method of microweb.sample.App class:
 
-    // ...
-    // previous code already present
-    // ...
+// ...
+// previous code already present
+// ...
 
-    // 4. Initialize additional roles (if not using KeyCloak):
-    RoleManagement.initializeDefault();
+// 4. Initialize additional roles (if not using KeyCloak):
+RoleManagement.initializeDefault();
 
-    // This is added to serve static files to project - All static files are
-    // to be stored at src/main/java/resources/webroot directory, which will be
-    // packed with the application Jar file
-    getRouter().route("/static/*").handler(StaticHandler.create());
-    
-    // ...
-    // previous code already present
-    // ...
+// This is added to serve static files to project - All static files are
+// to be stored at src/main/java/resources/webroot directory, which will be
+// packed with the application Jar file
+getRouter().route("/static/*").handler(StaticHandler.create());
+
+// ...
+// previous code already present
+// ...
 ```
 
 Create the `src/main/java/resources/webroot` directory, and create an `index.html` file in it, with these contents:
@@ -1281,12 +1278,159 @@ If you start the application (using Gradle, as shown previously), you'll be able
 
 ![static homepage](static-home-page.png)
 
+At this moment, the implementation of `microweb.sample.App` class must be equals to:
+
+```Java
+package microweb.sample;
+
+import com.ultraschemer.microweb.controller.AuthorizationFilter;
+import com.ultraschemer.microweb.controller.LoginController;
+import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.domain.RoleManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.handler.StaticHandler;
+
+// 1. Specialize WebAppVerticle:
+public class App extends WebAppVerticle {
+    static {
+        // 2. Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
+    @Override
+    public void initialization() throws Exception {
+        // 3. Verify the default user and the default role:
+        UserManagement.initializeRoot();
+
+        // 4. Initialize additional roles (if not using KeyCloak):
+        RoleManagement.initializeDefault();
+
+        // This is added to serve static files to project - All static files are
+        // to be stored at src/main/java/resources/webroot directory, which will be
+        // packed with the application Jar file
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // 5. Register authorization filter:
+        registerFilter(new AuthorizationFilter());
+
+        // 6. Register controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+    }
+
+    public static void main(String[] args) {
+        // 7. Create the Application Vertx instance:
+        Vertx vertx = Vertx.vertx();
+
+        // 8. Deploy the WebAppVerticle:
+        vertx.deployVerticle(new App());
+    }
+}
+```
+
 Now, we can start to implement a System login form.
+
+#### 5.1.6.2. Home path, User login, with HTML GUI
+
+The default User Login is a REST API. This is not suitable to human users. Let's create a standard GUI login interface and an application real homepage (not the static one, shown above). In the `initialization()` method, of `App` class, put this snippet after the login and logoff controllers registration:
+
+```java
+// Set this in the end of initialization() method of microweb.sample.App class:
+
+// ...
+// previous code already present
+// ...
+
+// Controllers used to manage User Login:
+// L.1: Login default presentation:
+registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+// L.2: Login submission handling:
+registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+
+// L.3:  Default system home page handling:
+registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+```
+
+At this point it's important to reinforce a specific Vert.x routing registration characteristic: router registration is order sensitive. Vert.x evaluate routes sequencially, so if you register two controllers with conflicting routing paths, Vert.x will chose, __always__, the first registered controller. So, be careful with the order of your registrations, registering more specific routes __before__ more general ones.
+
+Now, create the three controller classes, leave them empty. Put all of them in the package `microweb.sample.controller`, to enforce Separation of Concerns:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLoginViewController.java`
+
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+
+public class GuiUserLoginViewController extends SimpleController {
+    public GuiUserLoginViewController() {
+        super(500, "85c2c7d9-eab9-4b6e-9ebd-271966722124");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        throw new Exception("Unimplemented");
+    }
+}
+```
+__File__ `src/main/java/microweb/sample/controller/GuiUserLoginProcessController.java`
+
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+
+public class GuiUserLoginProcessController extends SimpleController {
+    public GuiUserLoginProcessController() {
+        super(500, "7f65217b-a95e-4b0c-8161-5ab116b49dea");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        throw new Exception("Unimplemented");
+    }
+}
+```
+__File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.java`
+
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+
+public class DefaultHomePageController extends SimpleController {
+    public DefaultHomePageController() {
+        super(500, "a37c914b-f737-4a73-a226-7bd86baac8c3");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        throw new Exception("Unimplemented");
+    }
+}
+```
+
+Let's start editing the `DefaultHomePageController`, to provide a default home page for our project.
+
+Change the original implementation of such class to:
+
+__TODO:__ Continue from here.
 
 #### 5.1.6.2. User logoff, with HTML GUI
 
-<span style="color: blue">__TODO__</span>
+__TODO__
 
 ## 5.2. Simple user manager system, with OpenID support
 
-<span style="color: blue">__TODO__</span>
+__TODO__
