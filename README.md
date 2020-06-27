@@ -1224,10 +1224,64 @@ Let's create a static webroot folder, and structure a web application on it.
 
 #### 5.1.6.1. Static webroot folder and static data
 
-<span style="color: blue">__TODO__</span>
+Every web application needs some static files, and with this sample, it's no different. Since Microweb is Vert.x, let's create a static folder, put basic HTML and CSS there
 
 #### 5.1.6.2. User login, with HTML GUI
-The default User Login is a REST API. This is not suitable to human users. Let's create a standard login interface
+The default User Login is a REST API. This is not suitable to human users. Let's create a standard login interface. In the `initialization()` method, of `App` class, put this snippet after default initializations:
+
+```Java
+    // Set this in the initialization() method of microweb.sample.App class:
+
+    // ...
+    // previous code already present
+    // ...
+
+    // 4. Initialize additional roles (if not using KeyCloak):
+    RoleManagement.initializeDefault();
+
+    // This is added to serve static files to project - All static files are
+    // to be stored at src/main/java/resources/webroot directory, which will be
+    // packed with the application Jar file
+    getRouter().route("/static/*").handler(StaticHandler.create());
+    
+    // ...
+    // previous code already present
+    // ...
+```
+
+Create the `src/main/java/resources/webroot` directory, and create an `index.html` file in it, with these contents:
+
+__File__ `src/main/java/resources/webroot/index.html`
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    This is Microweb sample file!
+</body>
+</html>
+```
+
+And create its default CSS file:
+
+__File__ `src/main/java/resources/webroot/index.css`
+
+```css
+body {
+    font-family: Roboto, OpenSans, Arial, Helvetica, 'sans-serif'
+}
+```
+
+If you start the application (using Gradle, as shown previously), you'll be able to load the home page at __http://localhost:48080/static__, address, as show below:
+
+![static homepage](static-home-page.png)
+
+Now, we can start to implement a System login form.
 
 #### 5.1.6.2. User logoff, with HTML GUI
 
