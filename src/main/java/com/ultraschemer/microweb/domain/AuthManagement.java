@@ -109,7 +109,7 @@ public class AuthManagement {
                     if (tryCount >= 10) {
                         session.close();
 
-                        String message = "Não foi possível criar token de autorização. Tente novamente.";
+                        String message = "It wasn't possible to create authorization token. Try again.";
                         throw new UnableToGenerateAccessTokenException(message);
                     }
                 }
@@ -150,7 +150,7 @@ public class AuthManagement {
 
             if (tokens.size() == 0) {
                 // Caso não haja Token de usuário, ele não está autorizado a continuar:
-                throw new UnauthorizedException("Acesso inválido - não autorizado a continuar.");
+                throw new UnauthorizedException("Not authorized: invalid access.");
             }
 
             accessToken = tokens.iterator().next();
@@ -191,7 +191,7 @@ public class AuthManagement {
             session.getTransaction().commit();
 
             if (updated == 0) {
-                String message = "Usuário não autorizado ou acesso já expirado.";
+                String message = "Unauthorized user or session already expired.";
                 throw new UnauthorizedException(message);
             }
         } catch (PersistenceException pe) {

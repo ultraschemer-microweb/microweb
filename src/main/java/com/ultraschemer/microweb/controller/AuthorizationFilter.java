@@ -3,10 +3,13 @@ package com.ultraschemer.microweb.controller;
 import com.ultraschemer.microweb.domain.AuthManagement;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.error.StandardRuntimeException;
 import com.ultraschemer.microweb.error.UnknownException;
 import com.ultraschemer.microweb.vertx.AsyncExecutor;
 import com.ultraschemer.microweb.vertx.BasicController;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -42,13 +45,13 @@ public class AuthorizationFilter implements BasicController {
     protected void executeHandler(RoutingContext routingContext, AsyncExecutor consumer) {
         try {
             consumer.execute();
-        } catch (StandardException se) {
+        } catch (StandardException | StandardRuntimeException se) {
             routingContext.response()
                     .putHeader("Content-Type", "application/json; encoding=utf-8")
                     .setStatusCode(se.getHttpStatus())
                     .end(Json.encode(se.bean()));
         } catch (Exception e) {
-            UnknownException ue = new UnknownException("Erro desconhecido: " + e.getMessage());
+            UnknownException ue = new UnknownException("Unknown error: " + e.getMessage());
             routingContext.response()
                     .putHeader("Content-Type", "application/json; encoding=utf-8")
                     .setStatusCode(ue.getHttpStatus())
@@ -89,6 +92,34 @@ public class AuthorizationFilter implements BasicController {
 
                 if (token == null) {
                     token = routingContext.request().getHeader("Microweb-Access-Token");
+                }
+
+                if (token == null) {
+                    try {
+                        token = routingContext.getCookie("Microweb-Access-Token").getValue();
+                    } catch(Exception e) { /* Ignore */ }
+                }
+
+                if(token == null) {
+                    token = routingContext.request().getParam("Microweb-Access-Token");
+                }
+
+                if(token == null) {
+                    try {
+                        if(routingContext.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
+                            routingContext.request().setExpectMultipart(true);
+                        }
+
+                        token = routingContext.request().getFormAttribute("Microweb-Access-Token");
+
+                    } catch (Exception e) { /* Ignore */ }
+                }
+
+                if(token == null) {
+                    try {
+                        JsonObject body = routingContext.getBodyAsJson();
+                        token = body.getString("Microweb-Access-Token");
+                    } catch(Exception e) { /* Ignore */ }
                 }
 
                 finishAuthorization(routingContext, token);
