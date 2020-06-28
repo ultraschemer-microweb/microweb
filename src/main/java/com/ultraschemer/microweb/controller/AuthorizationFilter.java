@@ -71,6 +71,10 @@ public class AuthorizationFilter implements BasicController {
     public void evaluate(Route route) {
         route.handler(BodyHandler.create());
         route.blockingHandler(routingContext -> {
+            if(routingContext.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
+                routingContext.request().setExpectMultipart(true);
+            }
+
             // Primeiro, elimina todas as rotas que não são filtradas por autorização:
             String path = routingContext.request().uri();
 
@@ -106,9 +110,6 @@ public class AuthorizationFilter implements BasicController {
 
                 if(token == null) {
                     try {
-                        if(routingContext.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
-                            routingContext.request().setExpectMultipart(true);
-                        }
 
                         token = routingContext.request().getFormAttribute("Microweb-Access-Token");
 

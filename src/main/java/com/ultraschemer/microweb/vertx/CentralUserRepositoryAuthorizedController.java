@@ -22,6 +22,10 @@ public abstract class CentralUserRepositoryAuthorizedController extends SimpleCo
      */
     @Override
     public void beforeEvaluation(RoutingContext context) throws StandardException {
+        if (context.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
+            context.request().setExpectMultipart(true);
+        }
+
         HttpServerRequest request = context.request();
         String token = request.getHeader("Authorization");
 
@@ -40,9 +44,7 @@ public abstract class CentralUserRepositoryAuthorizedController extends SimpleCo
 
             if (token == null) {
                 try {
-                    if (context.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
-                        context.request().setExpectMultipart(true);
-                    }
+
 
                     token = context.request().getFormAttribute("Microweb-Access-Token");
 
