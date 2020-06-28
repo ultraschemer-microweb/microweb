@@ -72,7 +72,9 @@ public class AuthorizationFilter implements BasicController {
     public void evaluate(Route route) {
         route.handler(BodyHandler.create());
         route.blockingHandler(routingContext -> {
-            if(routingContext.request().getHeader("Content-type").toLowerCase().trim().startsWith("multipart/form-data")) {
+            String contentType = routingContext.request().getHeader("Content-type");
+            if(contentType != null &&
+                    contentType.toLowerCase().trim().startsWith("multipart/form-data")) {
                 routingContext.request().setExpectMultipart(true);
             }
 
