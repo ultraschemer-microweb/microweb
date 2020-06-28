@@ -13,6 +13,7 @@ import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
+import net.bytebuddy.implementation.bytecode.Throw;
 
 import java.util.HashSet;
 import java.util.regex.Matcher;
@@ -50,7 +51,7 @@ public class AuthorizationFilter implements BasicController {
                     .putHeader("Content-Type", "application/json; encoding=utf-8")
                     .setStatusCode(se.getHttpStatus())
                     .end(Json.encode(se.bean()));
-        } catch (Exception e) {
+        } catch (Throwable e) {
             UnknownException ue = new UnknownException("Unknown error: " + e.getMessage());
             routingContext.response()
                     .putHeader("Content-Type", "application/json; encoding=utf-8")

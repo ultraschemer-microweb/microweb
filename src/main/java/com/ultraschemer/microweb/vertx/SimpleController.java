@@ -52,42 +52,47 @@ public abstract class SimpleController implements BasicController {
         // To be overridden
     }
 
+    protected void executeHandler(RoutingContext routingContext, AsyncExecutor consumer) {
+        Logger logger = LoggerFactory.getLogger(SimpleController.class);
+        HttpServerResponse response = routingContext.response();
+        response.putHeader("Content-Type", contentType);
+
+        try {
+            consumer.execute();
+        } catch(StandardException|StandardRuntimeException se) {
+            // Log error messages:
+            if(logger.isDebugEnabled()) {
+                logger.debug(Throwables.getStackTraceAsString(se));
+            }
+
+            // Ensure the correct content-type in the case of error:
+            response.putHeader("Content-Type", contentType);
+            // Finish the response:
+            response.setStatusCode(se.getHttpStatus()).end(Json.encode(se.bean()));
+        } catch(Throwable t) {
+            // Log error messages:
+            if(logger.isDebugEnabled()) {
+                logger.debug(Throwables.getStackTraceAsString(t));
+            }
+
+            Message msg = new Message(this.errorCode, this.httpStatusCode,
+                    "Unknown error: " + t.getMessage(),
+                    Throwables.getStackTraceAsString(t));
+            // Ensure the correct content-type in the case of error:
+            response.putHeader("Content-Type", contentType);
+            // Finish the response:
+            response.setStatusCode(msg.getHttpStatus()).end(Json.encode(msg));
+        }
+    }
+
     @Override
     public void evaluate(Route route) {
-        Logger logger = LoggerFactory.getLogger(SimpleController.class);
-
         route.handler(this.bodyHandlerCreate()).blockingHandler(routingContext -> {
-            HttpServerResponse response = routingContext.response();
-            response.putHeader("Content-Type", contentType);
-
-            try {
+            this.executeHandler(routingContext, () -> {
                 beforeEvaluation(routingContext);
-                executeEvaluation(routingContext, response);
+                executeEvaluation(routingContext, routingContext.response());
                 afterEvaluation(routingContext);
-            } catch(StandardException|StandardRuntimeException se) {
-                // Log error messages:
-                if(logger.isDebugEnabled()) {
-                    logger.debug(Throwables.getStackTraceAsString(se));
-                }
-
-                // Ensure the correct content-type in the case of error:
-                response.putHeader("Content-Type", contentType);
-                // Finish the response:
-                response.setStatusCode(se.getHttpStatus()).end(Json.encode(se.bean()));
-            } catch(Throwable t) {
-                // Log error messages:
-                if(logger.isDebugEnabled()) {
-                    logger.debug(Throwables.getStackTraceAsString(t));
-                }
-
-                Message msg = new Message(this.errorCode, this.httpStatusCode,
-                        "Unknown error: " + t.getMessage(),
-                        Throwables.getStackTraceAsString(t));
-                // Ensure the correct content-type in the case of error:
-                response.putHeader("Content-Type", contentType);
-                // Finish the response:
-                response.setStatusCode(msg.getHttpStatus()).end(Json.encode(msg));
-            }
+            });
         });
     }
 

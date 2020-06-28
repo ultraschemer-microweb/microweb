@@ -17,7 +17,7 @@ public class ProxyEvaluator {
     {
         Request req;
         HttpServerRequest serverRequest = context.request();
-        MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+        MediaType json = MediaType.parse("application/json; charset=utf-8");
         String serviceAddress = serverAddress + serverRequest.uri();
         User user = context.get("user");
         Request.Builder builder =
@@ -33,13 +33,13 @@ public class ProxyEvaluator {
                 req = builder.get().build();
                 break;
             case POST:
-                req = builder.post(RequestBody.create(context.getBodyAsString(), JSON)).build();
+                req = builder.post(RequestBody.create(context.getBodyAsString(), json)).build();
                 break;
             case PUT:
-                req = builder.put(RequestBody.create(context.getBodyAsString(), JSON)).build();
+                req = builder.put(RequestBody.create(context.getBodyAsString(), json)).build();
                 break;
             case PATCH:
-                req = builder.patch(RequestBody.create(context.getBodyAsString(), JSON)).build();
+                req = builder.patch(RequestBody.create(context.getBodyAsString(), json)).build();
                 break;
             case DELETE:
                 req = builder.url(serviceAddress).delete().build();
