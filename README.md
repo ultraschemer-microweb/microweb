@@ -1255,7 +1255,7 @@ __File__ `src/main/java/resources/webroot/index.html`
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="index.css">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
     <title>Microweb Sample</title>
 </head>
 <body>
@@ -1421,15 +1421,224 @@ public class DefaultHomePageController extends SimpleController {
 }
 ```
 
-Let's start editing the `DefaultHomePageController`, to provide a default home page for our project.
+Let's run the project and test it.
+
+If you try to load some page, you'll get an Unauthorized error:
+
+![unauthorized error](unauthorized-error.png)
+
+It means that the `AuthorizationFilter` is working correctly. But, to use the system, we must have, at least, a home-page which doesn't need authorization to be loaded.
+
+Then, let's specialize the Authorization filter, and release from authorization some pages.
+
+Create a new `AuthorizationFilter` class file, in the `microweb.sample.controller` package:
+
+__File__ `src/main/java/microweb/sample/controller/AuthorizationFilter.java`:
+
+```java
+package microweb.sample.controller;
+
+public class AuthorizationFilter extends com.ultraschemer.microweb.controller.AuthorizationFilter {
+    public AuthorizationFilter() {
+        super();
+        this.addUnfilteredPath("/");
+        this.addUnfilteredPath("/v0");
+    }
+}
+```
+
+And let's edit the `App` class implementation, to use this new `AuthorizationFilter`:
+
+__File__ `src/main/java/microweb/sample/App.java`:
+```java
+package microweb.sample;
+
+import com.ultraschemer.microweb.controller.LoginController;
+import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.domain.RoleManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.handler.StaticHandler;
+
+// The Authorization filter import has been changed here:
+import microweb.sample.controller.AuthorizationFilter;
+
+import microweb.sample.controller.DefaultHomePageController;
+import microweb.sample.controller.GuiUserLoginProcessController;
+import microweb.sample.controller.GuiUserLoginViewController;
+
+// 1. Specialize WebAppVerticle:
+public class App extends WebAppVerticle {
+    static {
+        // 2. Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
+    @Override
+    public void initialization() throws Exception {
+        // 3. Verify the default user and the default role:
+        UserManagement.initializeRoot();
+
+        // 4. Initialize additional roles (if not using KeyCloak):
+        RoleManagement.initializeDefault();
+
+        // This is added to serve static files to project - All static files are
+        // to be stored at src/main/java/resources/webroot directory, which will be
+        // packed with the application Jar file
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // 5. Register authorization filter:
+        registerFilter(new AuthorizationFilter());
+
+        // 6. Register controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+
+        // Controllers used to manage User Login:
+        // L.1: Login default presentation:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        // L.2: Login submission handling:
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+
+        // L.3:  Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+    }
+
+    public static void main(String[] args) {
+        // 7. Create the Application Vertx instance:
+        Vertx vertx = Vertx.vertx();
+
+        // 8. Deploy the WebAppVerticle:
+        vertx.deployVerticle(new App());
+    }
+}
+```
+
+And, let's restart the service, after these modifications. Now, the __"/"__ and __"/v0"__ paths must be freely available, but yet returning an error, because they're not implemented:
+
+![unimplemented](unimplemented.png)
+
+Now, let's start editing the `DefaultHomePageController`, to provide a default home page for our project.
 
 Change the original implementation of such class to:
 
+__File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.java`:
 ```Java
-// TODO
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.view.FtlHelper;
+
+public class DefaultHomePageController extends SimpleController {
+    // C.1: Create a static instance of the default home page template variable, to store and cache it:
+    private static Template homePageTemplate = null;
+
+    // C.2: Initialize the template defined above, suitably:
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    // C.3: Define the default controller constructor:
+    public DefaultHomePageController() {
+        super(500, "a37c914b-f737-4a73-a226-7bd86baac8c3");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        // C.4: In the controller evaluation routine, render the template:
+        routingContext
+                 .response()
+                 .putHeader("Content-type", "text/html")
+                 .end(FtlHelper.processToString(homePageTemplate, null));
+    }
+}
 ```
 
-Now let's explain all points commented in the code, above.
+The code above depends on a helper class to configure the [FreeMarker](https://freemarker.apache.org/) template library, which is already packaged with Microweb.
+
+Create the next class, to load configurations for FreeMarker:
+
+__File__ `src/main/java/microweb/sample/view/FtlHelper.java`:
+```java
+package microweb.sample.view;
+
+import freemarker.template.Configuration;
+import freemarker.template.Template;
+import freemarker.template.TemplateExceptionHandler;
+
+import java.io.StringWriter;
+
+public abstract class FtlHelper {
+    private static final Configuration configuration = new Configuration(Configuration.VERSION_2_3_30);
+
+    // Perform the entire configuration here, similarly to what is presented in
+    // FreeMarker tutorial, at https://freemarker.apache.org/docs/pgui_quickstart_createconfiguration.html:
+    static {
+        configuration.setDefaultEncoding("UTF-8");
+        configuration.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+        configuration.setLogTemplateExceptions(false);
+        configuration.setWrapUncheckedExceptions(true);
+        configuration.setFallbackOnNullLoopVariable(false);
+
+        //
+        // Templates will be loaded from Classpath, to turn the project self-contained and packable
+        //
+        configuration.setClassForTemplateLoading(FtlHelper.class, "/views");
+    }
+
+    public static Configuration getConfiguration() {
+        return configuration;
+    }
+
+    // Just a helper to process templates to string easily:
+    public static String processToString(Template tpl, Object dataModel) throws Exception {
+        StringWriter writer = new StringWriter();
+        tpl.process(dataModel, writer);
+        return writer.toString();
+    }
+}
+```
+
+Then, create the next template file, in the resources path:
+__File__ `src/main/java/resources/views/homePage.ftl`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    This is Microweb generated Home Page!
+</body>
+</html>
+```
+
+After all of these, we have a full Controller->View structure defined for the application homepage, and it can be loaded correctly, after recompiling the project and reloading the home-page:
+
+![loaded home page](home-page.png)
+
+Now let's explain all points commented in the code of `DefaultHomePageController`, above.
+
+__TODO__
+
+And let's explain how the new AuthorizationFilter works.
+
+__TODO__
 
 __TODO:__ Continue from here.
 
