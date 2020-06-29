@@ -1634,17 +1634,289 @@ After all of these, we have a full Controller->View structure defined for the ap
 
 Now let's explain all points commented in the code of `DefaultHomePageController`, above.
 
-__TODO__
+* __C.1: Create a static instance of the default home page template variable, to store and cache it:__ It's necessary to define the FreeMarker templates to be used as View for this Controller. FreeMarker template instantiation is considered resource consuming, so creating such templates statically optimizes the code and this is considered the correct fashion to use these templates.
+* __C.2: Initialize the template defined above, suitably:__ Once declared, the template must be instantiated. Instantiate them statically, too. These templates __must__ be initialized. Any error here jeopardize the code, and must be solved. A not loaded template due errors is completely useless.
+* __C.3: Define the default controller constructor:__ The controller constructor overrides the superclass constructor. The first variable of __super__ constructor is the HTTP Status error to be presented if any error processing the controller occurs, and it's not handled. Here it will return a __500 Internal Server Error__ status code, in the case of a unknown unhandled exception happening. The second variable is random UUID, to identify the Controller where the unhandled exception ocurred. We'll present better about standard exception handling when implementing business rules.
+* __C.4: In the controller evaluation routine, render the template:__ The template rendering uses a simple helper provided by `FltHelper` class, but the rendering code can be considered straightforward.
 
-And let's explain how the new AuthorizationFilter works.
+And let's explain how the new AuthorizationFilter works. By default, AuthorizationFilter forbids the execution of any route, if an authorization code isn't provided, with the very exception of __"/v0/login"__ endpoint, regardless of calling method.
 
-__TODO__
-
-__TODO:__ Continue from here.
+This condition is far from suitable for a working REST/WEB microservice. So, we can specialize AuthorizationFilter (which is a kind of controller) and add new unrestricted endpoints. This is what we do, with the new `AuthorizationFilter` we implement above. Each call of `addUnfilteredPath`, which is a __protected__ method, releases the path from Authorization Filter restriction.
 
 #### 5.1.6.2. User logoff, with HTML GUI
 
-__TODO__
+Now we created a working home-page to the application, we can create a login form to enter in the system. The home-page will continue clean, and static, only with a link to the Login form:
+
+__File__ `src/main/java/microweb/sample/controller/AuthorizationFilter.java`:
+
+```java
+package microweb.sample.controller;
+
+public class AuthorizationFilter extends com.ultraschemer.microweb.controller.AuthorizationFilter {
+    public AuthorizationFilter() {
+        super();
+        this.addUnfilteredPath("/");
+        this.addUnfilteredPath("/v0");
+
+        // Add this, to release the login form to any unauthenticated user:
+        this.addUnfilteredPath("/v0/gui-user-login");
+    }
+}
+
+```
+
+__File__ `src/main/resources/views/homePage.ftl`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>This is Microweb generated Home Page!</p>
+    <p> Login <a href="/v0/gui-user-login">here</a>.</p>
+</body>
+</html>
+```
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLoginViewController.java`
+
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.view.FtlHelper;
+
+public class GuiUserLoginViewController extends SimpleController {
+    private static Template loginFormTemplate;
+
+    static {
+        try {
+            loginFormTemplate = FtlHelper.getConfiguration().getTemplate("loginForm.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    public GuiUserLoginViewController() {
+        super(500, "85c2c7d9-eab9-4b6e-9ebd-271966722124");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        routingContext
+                .response()
+                .putHeader("Content-type", "text/html")
+                .end(FtlHelper.processToString(loginFormTemplate, null));
+    }
+}
+```
+
+__File__ `src/main/resources/views/loginForm.ftl`
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>Perform Login to Microweb Sample:</p>
+    <form method="post">
+        <p>Name: <input type="text" name="name"/></p>
+        <p>Password: <input type="password" name="password"/></p>
+        <p><input type="submit" name="log in"/></p>
+    </form>
+</body>
+</html>
+```
+
+The files above define the form to perform login, but we need a controller to process Login, _per se_, and the internal home page, after login.
+
+The controller to evaluate login is next:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLoginProcessController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.AuthManagement;
+import com.ultraschemer.microweb.domain.bean.AuthenticationData;
+import com.ultraschemer.microweb.domain.bean.AuthorizationData;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.validation.Validator;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.controller.bean.LoginMessageData;
+import microweb.sample.domain.bean.UserLoginData;
+import microweb.sample.view.FtlHelper;
+
+public class GuiUserLoginProcessController extends SimpleController {
+    private static Template homePageTemplate = null;
+    private static Template loginFormTemplate = null;
+
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+            loginFormTemplate = FtlHelper.getConfiguration().getTemplate("loginForm.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    public GuiUserLoginProcessController() {
+        super(500, "7f65217b-a95e-4b0c-8161-5ab116b49dea");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = routingContext.request();
+
+        try {
+            // D.1: Validate input data:
+            UserLoginData userLoginData =
+                    new UserLoginData(request.getFormAttribute("name"), request.getFormAttribute("password"));
+            Validator.ensure(userLoginData);
+
+            // D.2: Transform data and call business rule to perform login:
+            AuthenticationData authenticationData = new AuthenticationData();
+            authenticationData.setName(userLoginData.getName());
+            authenticationData.setPassword(userLoginData.getPassword());
+
+            // D.3: Business call:
+            AuthorizationData authorizationData = AuthManagement.authenticate(authenticationData);
+
+            // D.4: Success - evaluate returned values:
+            response
+                    // Set authorization cookie:
+                    .putHeader("Set-Cookie", "Microweb-Access-Token=" + authorizationData.getAccessToken())
+                    // Just add an informative cookie, with token TTL (this cookie isn't used to enforce anything):
+                    .putHeader("Set-Cookie", "Access-Token-TTL=" + authorizationData.getTtl())
+                    // Render template:
+                    .putHeader("Content-type", "text/html")
+                    .setStatusCode(200)
+                    .end(FtlHelper.processToString(homePageTemplate, null));
+        } catch(StandardException e) {
+            // D.5: Business call failure, return to login form, but with error message:
+            LoginMessageData loginMessageData = new LoginMessageData(e.getLocalizedMessage());
+
+            response.putHeader("Content-type", "text/html")
+                    .setStatusCode(401)
+                    .end(FtlHelper.processToString(loginFormTemplate, loginMessageData));
+        }
+    }
+}
+```
+
+The controller, above, needs a Data Model object for `loginFormTemplate` object. This object is a bean, as define below:
+
+__File__ `src/main/java/microweb/sample/controller/bean/LoginMessageData.java`:
+```java
+package microweb.sample.controller.bean;
+
+import java.io.Serializable;
+
+public class LoginMessageData implements Serializable {
+    private String errorMessage;
+    private boolean error;
+
+    public LoginMessageData() {
+        this.errorMessage = null;
+        this.error = false;
+    }
+
+    public LoginMessageData(String errorMessage) {
+        this.errorMessage = errorMessage;
+        this.error = true;
+    }
+
+    public String getErrorMessage() {
+        return errorMessage;
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        this.errorMessage = errorMessage;
+    }
+
+    public boolean isError() {
+        return error;
+    }
+
+    public void setError(boolean error) {
+        this.error = error;
+    }
+}
+
+```
+
+And the same controller performs a validation, using this bean:
+__File__ `src/main/java/microweb/sample/domain/bean/UserLoginData.java`:
+```java
+package microweb.sample.domain.bean;
+
+import net.sf.oval.constraint.NotEmpty;
+import net.sf.oval.constraint.NotNull;
+
+import java.io.Serializable;
+
+public class UserLoginData implements Serializable {
+    @NotNull
+    @NotEmpty
+    private String name;
+
+    @NotNull
+    @NotEmpty
+    private String password;
+
+    public UserLoginData(String name, String password) {
+        this.name = name;
+        this.password = password;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+}
+```
+
+Data input validation is quintessentially a __controller__ responsibility, and Input validation errors, by default, raise a __400 Bad Request__ status.
+
+Microweb packs a library called __OVal__, used to perform data validation.
+
+The __OVal__ library packaged with Microweb is somewhat old, available at [this link](https://sourceforge.net/projects/oval/). Update Microweb to a more modern version of Oval is planned, but, at this moment, it's not a priority.
+
+Let's follow the comments pointed at `GuiUserLoginProcessController` implementation, above:
+
+* __D.1: Validate input data__: In a well structured controller, the input data must be suitably validated. Here, the controller instantiates a object enriched with some __OVal__ validation annotations, and then, on this object, is called a method called `Validator.ensure`. The `Validator` class verifies given object data and confront them with the __OVal__ validation annotations, thus validating the object. If a validation error occurs, a exception is raised. This exception is of type `ValidationException`, which is a specialization of `StandardException`. It can be seen that validation occurs inside a `try { ... } catch (...) { ... }` block, which is the correct way to perform validations in Microweb. Validation exceptions can receive specific exception handling, implemented by the developer.
+* __D.2: Transform data and call business rule to perform login__: After data is validated, it must be used by some Business Rule routine. If you're reusing some previous implemented business rule, then data must be transformed in a way this predefined business rule can use it. In this case, the `UserLoginData` is transformed to `AuthenticationData`, so the method `AuthManagement.authenticate` can be used here.
+* __D.3: Business call__:
+* __D.4: Success - evaluate returned values__:
+* __D.5: Business call failure, return to login form, but with error message__:
 
 ## 5.2. Simple user manager system, with OpenID support
 
