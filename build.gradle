@@ -40,8 +40,8 @@ dependencies {
     api group: 'com.google.guava', name: 'guava', version: '20.0'
 
     // Add VertX to the project, to serve Web REST:
-    api group: 'io.vertx', name: 'vertx-core', version: '3.7.1'
-    api group: 'io.vertx', name: 'vertx-web', version: '3.7.1'
+    api group: 'io.vertx', name: 'vertx-core', version: '3.9.1'
+    api group: 'io.vertx', name: 'vertx-web', version: '3.9.1'
 
     // Validation and contract-programming library:
     api group: 'net.sf.oval', name: 'oval', version: '1.90'
@@ -80,7 +80,7 @@ dependencies {
 }
 
 def _group = 'com.ultraschemer.microweb'
-def _version = '0.6.1'
+def _version = '0.6.2'
 publishing {
     publications {
         mavenJava(MavenPublication) {

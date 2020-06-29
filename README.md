@@ -1693,6 +1693,9 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import microweb.sample.view.FtlHelper;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class GuiUserLoginViewController extends SimpleController {
     private static Template loginFormTemplate;
 
@@ -1712,10 +1715,12 @@ public class GuiUserLoginViewController extends SimpleController {
 
     @Override
     public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        Map<String, Object> loginMessageData = new HashMap<>();
+        loginMessageData.put("error", false);
         routingContext
                 .response()
                 .putHeader("Content-type", "text/html")
-                .end(FtlHelper.processToString(loginFormTemplate, null));
+                .end(FtlHelper.processToString(loginFormTemplate, loginMessageData));
     }
 }
 ```
@@ -1732,6 +1737,9 @@ __File__ `src/main/resources/views/loginForm.ftl`
 <body>
     <p>Perform Login to Microweb Sample:</p>
     <form method="post">
+        <#if error >
+            <p><strong>${errorMessage}</strong></p>
+        </#if>
         <p>Name: <input type="text" name="name"/></p>
         <p>Password: <input type="password" name="password"/></p>
         <p><input type="submit" name="log in"/></p>
@@ -1758,9 +1766,11 @@ import freemarker.template.Template;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import microweb.sample.controller.bean.LoginMessageData;
 import microweb.sample.domain.bean.UserLoginData;
 import microweb.sample.view.FtlHelper;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class GuiUserLoginProcessController extends SimpleController {
     private static Template homePageTemplate = null;
@@ -1811,55 +1821,15 @@ public class GuiUserLoginProcessController extends SimpleController {
                     .end(FtlHelper.processToString(homePageTemplate, null));
         } catch(StandardException e) {
             // D.5: Business call failure, return to login form, but with error message:
-            LoginMessageData loginMessageData = new LoginMessageData(e.getLocalizedMessage());
-
+            Map<String, Object> loginMessageData = new HashMap<>();
+            loginMessageData.put("errorMessage", e.getLocalizedMessage());
+            loginMessageData.put("error", true);
             response.putHeader("Content-type", "text/html")
                     .setStatusCode(401)
                     .end(FtlHelper.processToString(loginFormTemplate, loginMessageData));
         }
     }
 }
-```
-
-The controller, above, needs a Data Model object for `loginFormTemplate` object. This object is a bean, as define below:
-
-__File__ `src/main/java/microweb/sample/controller/bean/LoginMessageData.java`:
-```java
-package microweb.sample.controller.bean;
-
-import java.io.Serializable;
-
-public class LoginMessageData implements Serializable {
-    private String errorMessage;
-    private boolean error;
-
-    public LoginMessageData() {
-        this.errorMessage = null;
-        this.error = false;
-    }
-
-    public LoginMessageData(String errorMessage) {
-        this.errorMessage = errorMessage;
-        this.error = true;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public void setErrorMessage(String errorMessage) {
-        this.errorMessage = errorMessage;
-    }
-
-    public boolean isError() {
-        return error;
-    }
-
-    public void setError(boolean error) {
-        this.error = error;
-    }
-}
-
 ```
 
 And the same controller performs a validation, using this bean:
@@ -1908,15 +1878,16 @@ Data input validation is quintessentially a __controller__ responsibility, and I
 
 Microweb packs a library called __OVal__, used to perform data validation.
 
-The __OVal__ library packaged with Microweb is somewhat old, available at [this link](https://sourceforge.net/projects/oval/). Update Microweb to a more modern version of Oval is planned, but, at this moment, it's not a priority.
+The __OVal__ library packaged with Microweb is somewhat old, available at [this link](https://sourceforge.net/projects/oval/). To update Microweb to a more modern version of Oval is planned, but, at this moment, it's not a priority.
 
 Let's follow the comments pointed at `GuiUserLoginProcessController` implementation, above:
 
 * __D.1: Validate input data__: In a well structured controller, the input data must be suitably validated. Here, the controller instantiates a object enriched with some __OVal__ validation annotations, and then, on this object, is called a method called `Validator.ensure`. The `Validator` class verifies given object data and confront them with the __OVal__ validation annotations, thus validating the object. If a validation error occurs, a exception is raised. This exception is of type `ValidationException`, which is a specialization of `StandardException`. It can be seen that validation occurs inside a `try { ... } catch (...) { ... }` block, which is the correct way to perform validations in Microweb. Validation exceptions can receive specific exception handling, implemented by the developer.
 * __D.2: Transform data and call business rule to perform login__: After data is validated, it must be used by some Business Rule routine. If you're reusing some previous implemented business rule, then data must be transformed in a way this predefined business rule can use it. In this case, the `UserLoginData` is transformed to `AuthenticationData`, so the method `AuthManagement.authenticate` can be used here.
-* __D.3: Business call__:
-* __D.4: Success - evaluate returned values__:
-* __D.5: Business call failure, return to login form, but with error message__:
+* __D.3: Business call__: At this moment, a business call, from __Domain__ layer is called. No business logic can be in the controller, everything is in the business class.
+* __D.4: Success - evaluate returned values__: Microweb assumes a successful business call will return, with a value or not. If the business call returns, then it's successful and its return data must be formatted to user. In this case, the authorization token is saved as a Cookie, and the user is sent to a logged home page.
+* __D.5: Business call failure, return to login form, but with error message__: In the case of a business call failure, or any other failure in the controller scope, a specific error message must be formatted to the user. Here, the login form is shown again to the user, receiving the error message. It can be seen that a variable called `loginMessageData` is created to feed login form template. This variable is the FreeMarker template data model, akin to the .Net MVC View-Model, if you're used to this Framework.
+
 
 ## 5.2. Simple user manager system, with OpenID support
 

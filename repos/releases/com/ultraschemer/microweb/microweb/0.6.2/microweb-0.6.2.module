@@ -1,0 +1,233 @@
+{
+  "formatVersion": "1.1",
+  "component": {
+    "group": "com.ultraschemer.microweb",
+    "module": "microweb",
+    "version": "0.6.2",
+    "attributes": {
+      "org.gradle.status": "release"
+    }
+  },
+  "createdBy": {
+    "gradle": {
+      "version": "6.1.1",
+      "buildId": "ryb4vveqjfdc3ohzdj45sk7n4m"
+    }
+  },
+  "variants": [
+    {
+      "name": "apiElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-api"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "20.0"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-core",
+          "version": {
+            "requires": "3.9.1"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-web",
+          "version": {
+            "requires": "3.9.1"
+          }
+        },
+        {
+          "group": "net.sf.oval",
+          "module": "oval",
+          "version": {
+            "requires": "1.90"
+          }
+        },
+        {
+          "group": "org.apache.logging.log4j",
+          "module": "log4j",
+          "version": {
+            "requires": "2.11.1"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-api",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-log4j12",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "5.4.0.Final"
+          }
+        },
+        {
+          "group": "com.squareup.okhttp3",
+          "module": "okhttp",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.freemarker",
+          "module": "freemarker",
+          "version": {
+            "requires": "2.3.30"
+          }
+        },
+        {
+          "group": "com.auth0",
+          "module": "java-jwt",
+          "version": {
+            "requires": "3.8.3"
+          }
+        },
+        {
+          "group": "org.littleshoot",
+          "module": "littleproxy",
+          "version": {
+            "requires": "1.1.2"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "microweb-0.6.2.jar",
+          "url": "microweb-0.6.2.jar",
+          "size": 157377,
+          "sha512": "3e1e8e9857ae303a75dcc907f6fd9d287b0d8c1ba59930df9459867b622279484f39d325c7ca5ca92a62cc55e8af27c9c6045d99c43ade3a65de22cc4f9961d7",
+          "sha256": "66e307945d484fdb871c3db8b78dc50f2150deeb7102aba5ba0c584c2745bcbd",
+          "sha1": "fe222d008e338b1611ee1eaff6e7c51a5c8f2f83",
+          "md5": "f9ce4b9e6018650474a2453b481851bd"
+        }
+      ]
+    },
+    {
+      "name": "runtimeElements",
+      "attributes": {
+        "org.gradle.category": "library",
+        "org.gradle.dependency.bundling": "external",
+        "org.gradle.jvm.version": 8,
+        "org.gradle.libraryelements": "jar",
+        "org.gradle.usage": "java-runtime"
+      },
+      "dependencies": [
+        {
+          "group": "com.google.guava",
+          "module": "guava",
+          "version": {
+            "requires": "20.0"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-core",
+          "version": {
+            "requires": "3.9.1"
+          }
+        },
+        {
+          "group": "io.vertx",
+          "module": "vertx-web",
+          "version": {
+            "requires": "3.9.1"
+          }
+        },
+        {
+          "group": "net.sf.oval",
+          "module": "oval",
+          "version": {
+            "requires": "1.90"
+          }
+        },
+        {
+          "group": "org.apache.logging.log4j",
+          "module": "log4j",
+          "version": {
+            "requires": "2.11.1"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-api",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.slf4j",
+          "module": "slf4j-log4j12",
+          "version": {
+            "requires": "1.7.25"
+          }
+        },
+        {
+          "group": "org.hibernate",
+          "module": "hibernate-core",
+          "version": {
+            "requires": "5.4.0.Final"
+          }
+        },
+        {
+          "group": "com.squareup.okhttp3",
+          "module": "okhttp",
+          "version": {
+            "requires": "4.1.0"
+          }
+        },
+        {
+          "group": "org.freemarker",
+          "module": "freemarker",
+          "version": {
+            "requires": "2.3.30"
+          }
+        },
+        {
+          "group": "com.auth0",
+          "module": "java-jwt",
+          "version": {
+            "requires": "3.8.3"
+          }
+        },
+        {
+          "group": "org.littleshoot",
+          "module": "littleproxy",
+          "version": {
+            "requires": "1.1.2"
+          }
+        }
+      ],
+      "files": [
+        {
+          "name": "microweb-0.6.2.jar",
+          "url": "microweb-0.6.2.jar",
+          "size": 157377,
+          "sha512": "3e1e8e9857ae303a75dcc907f6fd9d287b0d8c1ba59930df9459867b622279484f39d325c7ca5ca92a62cc55e8af27c9c6045d99c43ade3a65de22cc4f9961d7",
+          "sha256": "66e307945d484fdb871c3db8b78dc50f2150deeb7102aba5ba0c584c2745bcbd",
+          "sha1": "fe222d008e338b1611ee1eaff6e7c51a5c8f2f83",
+          "md5": "f9ce4b9e6018650474a2453b481851bd"
+        }
+      ]
+    }
+  ]
+}
