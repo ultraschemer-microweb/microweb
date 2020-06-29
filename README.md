@@ -43,7 +43,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.5.1"
+  implementation "com.ultraschemer.microweb:microweb:0.6.2"
 }
 ```
 
@@ -58,7 +58,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.5.1</version>
+    <version>0.6.2</version>
   </dependency>
 </dependencies>
 ```
@@ -373,7 +373,7 @@ repositories {
 
 dependencies {
     // The entire Microweb framework:
-    implementation 'com.ultraschemer.microweb:microweb:0.5.1'
+    implementation 'com.ultraschemer.microweb:microweb:0.6.2'
 
     // Database driver:
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
@@ -1334,7 +1334,7 @@ public class App extends WebAppVerticle {
 
 Now, we can start to implement a System login form.
 
-#### 5.1.6.2. Home path, User login, with HTML GUI
+#### 5.1.6.2. Home path, Home page with HTML GUI
 
 The default User Login is a REST API. This is not suitable to human users. Let's create a standard GUI login interface and an application real homepage (not the static one, shown above). In the `initialization()` method, of `App` class, put this snippet after the login and logoff controllers registration:
 
@@ -1643,7 +1643,7 @@ And let's explain how the new AuthorizationFilter works. By default, Authorizati
 
 This condition is far from suitable for a working REST/WEB microservice. So, we can specialize AuthorizationFilter (which is a kind of controller) and add new unrestricted endpoints. This is what we do, with the new `AuthorizationFilter` we implement above. Each call of `addUnfilteredPath`, which is a __protected__ method, releases the path from Authorization Filter restriction.
 
-#### 5.1.6.2. User logoff, with HTML GUI
+#### 5.1.6.2. User login, with HTML GUI
 
 Now we created a working home-page to the application, we can create a login form to enter in the system. The home-page will continue clean, and static, only with a link to the Login form:
 
@@ -1888,6 +1888,40 @@ Let's follow the comments pointed at `GuiUserLoginProcessController` implementat
 * __D.4: Success - evaluate returned values__: Microweb assumes a successful business call will return, with a value or not. If the business call returns, then it's successful and its return data must be formatted to user. In this case, the authorization token is saved as a Cookie, and the user is sent to a logged home page.
 * __D.5: Business call failure, return to login form, but with error message__: In the case of a business call failure, or any other failure in the controller scope, a specific error message must be formatted to the user. Here, the login form is shown again to the user, receiving the error message. It can be seen that a variable called `loginMessageData` is created to feed login form template. This variable is the FreeMarker template data model, akin to the .Net MVC View-Model, if you're used to this Framework.
 
+If you build the project, you'll see a simple usable form login for the application.
+
+The home-page must show if the user is logged or not. Change the  `executeEvaluation()` method from `microweb.sample.controller.DefaultHomePageController` class to:
+
+__File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.java`, method `DefaultHomePageController.executeEvaluation`:
+
+```java
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        // Define homepage data model:
+        Map<String, Object> homepageDataRoot = new HashMap<>();
+
+        // Load user cookie:
+        HttpServerRequest request = routingContext.request();
+        Cookie authorizationToken = request.getCookie("Microweb-Access-Token");
+
+        // Populate Homepage data model:
+        if(authorizationToken != null) {
+            // Get user data:
+            User u = AuthManagement.authorize(authorizationToken.getValue());
+            homepageDataRoot.put("logged", true);
+        } else {
+            homepageDataRoot.put("logged", false);
+        }
+
+        // C.4: In the controller evaluation routine, render the template:
+        routingContext
+                 .response()
+                 .putHeader("Content-type", "text/html")
+                 .end(FtlHelper.processToString(homePageTemplate, homepageDataRoot));
+    }
+```
+
+__TODO__: Continue from here.
 
 ## 5.2. Simple user manager system, with OpenID support
 
