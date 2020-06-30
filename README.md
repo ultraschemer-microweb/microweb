@@ -1643,7 +1643,7 @@ And let's explain how the new AuthorizationFilter works. By default, Authorizati
 
 This condition is far from suitable for a working REST/WEB microservice. So, we can specialize AuthorizationFilter (which is a kind of controller) and add new unrestricted endpoints. This is what we do, with the new `AuthorizationFilter` we implement above. Each call of `addUnfilteredPath`, which is a __protected__ method, releases the path from Authorization Filter restriction.
 
-#### 5.1.6.2. User login, with HTML GUI
+#### 5.1.6.2. User login and logoff, with HTML GUI
 
 Now we created a working home-page to the application, we can create a login form to enter in the system. The home-page will continue clean, and static, only with a link to the Login form:
 
@@ -1909,6 +1909,7 @@ __File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.jav
             // Get user data:
             User u = AuthManagement.authorize(authorizationToken.getValue());
             homepageDataRoot.put("logged", true);
+            homepageDataRoot.put("user", u);
         } else {
             homepageDataRoot.put("logged", false);
         }
@@ -1921,7 +1922,53 @@ __File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.jav
     }
 ```
 
-__TODO__: Continue from here.
+And change the home page template to:
+
+__File__ `src/main/resources/views/homePage.ftl`:
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>This is Microweb generated Home Page!</p>
+    <#if logged>
+        <p>Welcome <strong>${user.name}</strong>!</p>
+        <p>Logoff <a href="/v0/gui-user-logoff">here</a>.</p>
+    <#else>
+        <p>Login <a href="/v0/gui-user-login">here</a>.</p>
+    </#if>
+</body>
+</html>
+```
+
+Now you can see which user is logged, and you have a link to a logoff call. This logoff call won't work, since its controller isn't implemented. Let's implement the user logoff.
+
+We start defining the logoff route in the `App.initialization()` method:
+
+__File__ `src/main/java/microweb/sample/App.java`, __method__ `App.initialization()`:
+```java
+    // Add the next line before the registration of "/" and "/v0" routes,   
+    // in App.initialization() method:
+    registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+```
+
+This route is restricted by `AuthorizationFilter`, so it's only accessible by logged authorized users.
+
+Now, create class `GuiUserLogoffProcessController`, as shown below:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLogoffProcessController.java`:
+```java
+
+```
+
+#### 5.1.6.3. A customized business rule with user interface
+
+__TODO__
 
 ## 5.2. Simple user manager system, with OpenID support
 
