@@ -43,7 +43,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.6.2"
+  implementation "com.ultraschemer.microweb:microweb:0.6.3"
 }
 ```
 
@@ -58,7 +58,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.6.2</version>
+    <version>0.6.3</version>
   </dependency>
 </dependencies>
 ```
@@ -373,7 +373,7 @@ repositories {
 
 dependencies {
     // The entire Microweb framework:
-    implementation 'com.ultraschemer.microweb:microweb:0.6.2'
+    implementation 'com.ultraschemer.microweb:microweb:0.6.3'
 
     // Database driver:
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
@@ -1922,6 +1922,55 @@ __File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.jav
     }
 ```
 
+Change the `executeEvaluation()` method from `microweb.sample.controller.GuiUserLoginProcessController` to:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLoginProcessController.java`, method `GuiUserLoginProcessController.executeEvaluation` :
+
+```java
+@Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = routingContext.request();
+
+        try {
+            // D.1: Validate input data:
+            UserLoginData userLoginData =
+                    new UserLoginData(request.getFormAttribute("name"), request.getFormAttribute("password"));
+            Validator.ensure(userLoginData);
+
+            // D.2: Transform data and call business rule to perform login:
+            AuthenticationData authenticationData = new AuthenticationData();
+            authenticationData.setName(userLoginData.getName());
+            authenticationData.setPassword(userLoginData.getPassword());
+
+            // D.3: Business call:
+            AuthorizationData authorizationData = AuthManagement.authenticate(authenticationData);
+
+            // Populate view:
+            Map<String, Object> homepageDataRoot = new HashMap<>();
+            User u = AuthManagement.authorize(authorizationData.getAccessToken());
+            homepageDataRoot.put("logged", true);
+            homepageDataRoot.put("user", u);
+
+            // D.4: Success - evaluate returned values:
+            response
+                    // Set authorization cookie:
+                    .putHeader("Set-Cookie", "Microweb-Access-Token=" + authorizationData.getAccessToken())
+                    // Render template:
+                    .putHeader("Content-type", "text/html")
+                    .setStatusCode(200)
+                    .end(FtlHelper.processToString(homePageTemplate, homepageDataRoot));
+        } catch(StandardException e) {
+            // D.5: Business call failure, return to login form, but with error message:
+            Map<String, Object> loginMessageData = new HashMap<>();
+            loginMessageData.put("errorMessage", e.getLocalizedMessage());
+            loginMessageData.put("error", true);
+            response.putHeader("Content-type", "text/html")
+                    .setStatusCode(401)
+                    .end(FtlHelper.processToString(loginFormTemplate, loginMessageData));
+        }
+    }
+```
+
 And change the home page template to:
 
 __File__ `src/main/resources/views/homePage.ftl`:
@@ -1963,12 +2012,174 @@ Now, create class `GuiUserLogoffProcessController`, as shown below:
 
 __File__ `src/main/java/microweb/sample/controller/GuiUserLogoffProcessController.java`:
 ```java
+package microweb.sample.controller;
 
+import com.ultraschemer.microweb.domain.AuthManagement;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.view.FtlHelper;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class GuiUserLogoffProcessController extends SimpleController {
+    private static Template homePageTemplate = null;
+
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    public GuiUserLogoffProcessController() {
+        super(500, "eb474551-42d5-4452-be4f-4875d525b993");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        String token = routingContext.getCookie("Microweb-Access-Token").getValue();
+
+        // Perform logoff here:
+        AuthManagement.unauthorize(token);
+        Map<String, Object> homepageDataRoot = new HashMap<>();
+        homepageDataRoot.put("logged", false);
+
+        // Render home page again:
+        routingContext
+                .response()
+                .putHeader("Content-type", "text/html")
+                .end(FtlHelper.processToString(homePageTemplate, homepageDataRoot));
+
+    }
+}
 ```
+
+Now a complete cycle of login and logoff can be performed in this simple system.
 
 #### 5.1.6.3. A customized business rule with user interface
 
-__TODO__
+So far, we learned how to create system database, Entity mapping, define Views and Controllers, and define end-points for REST Routes. But nothing about how to define business rules have been told. This section is to close such gap.
+
+If we return to the project scope (Section __5.1.1. Project Objectives and Technical Requirements__), it's told, there:
+> Each user can store text documents and images on his/her accounts.
+So, let's implement such feature in the system, to give an example of how a Business Rule should be implemented in Microweb.
+
+It has been told, too, Microweb doesn't enforce __fat__ or __thin__ controllers, nor __fat__ or __thin__ models. The only advice to be given when implementing business rules is to isolate them in its own package, and this package must be __completely independent__ from Microweb archiecture and structure. If this package will be called model, business, controller or anything else is outside the scope of Microweb and this tutorial.
+
+To use a neutral name, we'll create a package called `microweb.sample.domain` and implement all business rules there. Any external dependency needed from Microweb structure will be injected, so we can assure the independence of such package from Microweb structure.
+
+To simplify the development, and since we don't need an alternative database for our Data Models, we'll use the Global Database Connection facility (which is just a simple wrapper over Hibernate SessionFactory) from Microweb, to persist data. This facility is called EntityUtil, but it won't be injected entirely, just Hibernate SessionFactory will be injected. The injection of such factory ensures an independent business layer.
+
+Another approach is to use `EntityUtil` directly - but this approach turn the Business Rules dependent to Microweb Structure. You can use such approach if you want to use the business rules you're developing only with Microweb - since Microweb will become a dependency to your business layer package. 
+
+As a rule of thumb, business rules can be developed procedurally, since the algorithm, in business layer is more important than the structure. A little Object-Orientation will be used, just to store de injected dependencies.
+
+You can read the code from `com.ultraschemer.microweb.domain.AuthManagement` class as an example of a purely procedural Business Layer implementation, which uses `EntityUtil` directly, if you want a more coupled approach of your system with Microweb.
+
+_Obs.: The Data Models we defined use the classes __Timeable__, __Createable__, __Identifiable__ and __Loggable__. They're integral to Microweb but they're apart from the Framework Runtime infra-structure. It's planned to turn these database modelling facilities a external library, and to make such library compatible with a series of databases, so this dependency is acceptable in this example. If you __really__ want Business Layer independence from Microweb, just use Hibernate or JPA plain mappings, and avoid using Microweb customized database mappings._
+
+Let's start, creating a default Business Layer class, to receive Microweb dependencies:
+
+__File__: `src/main/java/microweb/sample/domain/StandardDomain.java`:
+```java
+package microweb.sample.domain;
+
+import io.vertx.core.Vertx;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+
+// E.1: Abstract class to create business rules:
+public abstract class StandardDomain {
+    // E.2: Private dependencies, which shouldn't be updated, once assigned:
+    private SessionFactory factory;
+    private Vertx vertx;
+
+    // E.3: Facility to call sessions and transactions:
+    public Session openTransactionSession() {
+        Session s = factory.openSession();
+        s.beginTransaction();
+
+        return s;
+    }
+
+    // E.4: Dependencies getters:
+    protected SessionFactory getSessionFactory() {
+        return factory;
+    }
+
+    // E.4: Dependencies getters:
+    protected Vertx getVertx() {
+        return vertx;
+    }
+
+    // E.5: Business class default constructor:
+    public StandardDomain(SessionFactory factory, Vertx vertx) {
+        this.factory = factory;
+        this.vertx = vertx;
+    }
+}
+```
+
+The class above will be used to all Business classes, and they'll receive a Vertx and a SessionFactory instance to perform Asynchoronous operations and Database operations, respectively.
+
+Now, let's structure our first business class - that dealing with image storing and retrieving. The most important features of such class is to define a CRUD for Images, and to link them to users, under the owner resposibility:
+
+__File__ `src/java/microweb/sample/domain/ImageManagement.java`:
+```java
+package microweb.sample.domain;
+
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.error.StandardException;
+import io.vertx.core.Vertx;
+import microweb.sample.entity.Image;
+import org.hibernate.SessionFactory;
+
+import java.util.UUID;
+
+public class ImageManagement extends StandardDomain {
+    public ImageManagement(SessionFactory factory, Vertx vertx) {
+        super(factory, vertx);
+    }
+
+    public UUID save(User user, String imageFileName) {
+        // Implement image saving routines here.
+        return null;
+    }
+
+    public Image read(User user, UUID imageId) {
+        // Implement image reading routines here.
+        return null;
+    }
+
+    public static byte[] base64StrToBin(String base64Str) {
+        // Helper to implement conversion of image Base64 String to binary
+        return null;
+    }
+
+    public void linkToUser(User owner, UUID imageId, UUID userId) throws StandardException {
+        // Implement user->image linking here.
+    }
+}
+```
+
+To use the business class above, the user need to know other users, and maybe create other users. Fortunately, these business rules are all provided by Microweb in the box. It's important to remember the most important Microweb use-case: user management and resource permission, so it's natural Microweb provides such faciltiies.
+
+The first business function to define is `ImageManagement.save`, to populate our database with images.
+
+__File__ `src/java/microweb/sample/domain/ImageManagement.java`, method `ImageManagement.save()`:
+```java
+// TODO: continue from here.
+```
+
+It can be seen, above, that the initial method signature change from a synchronous one to asynchronous. File reading and Base64 conversion can be a slow operation, so an asynchronous approach has been chosen.
+
+Then, we'll, now, create the interface for user management and image management, using this new defined Business rule.
 
 ## 5.2. Simple user manager system, with OpenID support
 
