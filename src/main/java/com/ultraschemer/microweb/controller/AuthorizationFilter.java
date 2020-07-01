@@ -9,11 +9,9 @@ import com.ultraschemer.microweb.vertx.AsyncExecutor;
 import com.ultraschemer.microweb.vertx.BasicController;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.Cookie;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-import net.bytebuddy.implementation.bytecode.Throw;
 
 import java.util.HashSet;
 import java.util.regex.Matcher;
@@ -113,9 +111,7 @@ public class AuthorizationFilter implements BasicController {
 
                 if(token == null) {
                     try {
-
                         token = routingContext.request().getFormAttribute("Microweb-Access-Token");
-
                     } catch (Exception e) { /* Ignore */ }
                 }
 

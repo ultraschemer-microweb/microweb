@@ -6,6 +6,7 @@ import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.vertx.SimpleController;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 import java.util.regex.Matcher;
@@ -18,6 +19,12 @@ public class LogoffController extends SimpleController {
 
     @Override
     public void executeEvaluation(RoutingContext routingContext, HttpServerResponse response) throws StandardException {
+        String contentType = routingContext.request().getHeader("Content-type");
+        if(contentType != null &&
+                contentType.toLowerCase().trim().startsWith("multipart/form-data")) {
+            routingContext.request().setExpectMultipart(true);
+        }
+
         String authorization = routingContext.request().getHeader("Authorization");
         String token = null;
 
@@ -30,11 +37,34 @@ public class LogoffController extends SimpleController {
             }
         }
 
-        if(token == null) {
-            AuthManagement.unauthorize(routingContext.request().getHeader("Microweb-Access-Token"));
-        } else {
-            AuthManagement.unauthorize(token);
+        if (token == null) {
+            token = routingContext.request().getHeader("Microweb-Access-Token");
         }
+
+        if (token == null) {
+            try {
+                token = routingContext.getCookie("Microweb-Access-Token").getValue();
+            } catch(Exception e) { /* Ignore */ }
+        }
+
+        if(token == null) {
+            token = routingContext.request().getParam("Microweb-Access-Token");
+        }
+
+        if(token == null) {
+            try {
+                token = routingContext.request().getFormAttribute("Microweb-Access-Token");
+            } catch (Exception e) { /* Ignore */ }
+        }
+
+        if(token == null) {
+            try {
+                JsonObject body = routingContext.getBodyAsJson();
+                token = body.getString("Microweb-Access-Token");
+            } catch(Exception e) { /* Ignore */ }
+        }
+
+        AuthManagement.unauthorize(token);
 
         Message msg = new Message();
         msg.setHttpStatus(200);
