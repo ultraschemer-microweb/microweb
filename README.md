@@ -755,6 +755,7 @@ import com.ultraschemer.microweb.persistence.Createable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import java.util.UUID;
 
 @Entity
 @Table(name = "image")
@@ -764,6 +765,9 @@ public class Image extends Createable {
 
     @Column(name = "base64data")
     private String base64data;
+
+    @Column(name="owner_user_id")
+    private UUID ownerUserId;
 
     public String getName() {
         return name;
@@ -780,11 +784,24 @@ public class Image extends Createable {
     public void setBase64data(String base64data) {
         this.base64data = base64data;
     }
-}
 
+    public UUID getOwnerUserId() {
+        return ownerUserId;
+    }
+
+    public void setOwnerUserId(UUID ownerUserId) {
+        this.ownerUserId = ownerUserId;
+    }
+}
 ```
 
 File: `src/main/java/microweb/sample/entity/Document.java`
+
+```java
+
+```
+
+File: `src/main/java/microweb/sample/entity/User_Image.java`
 
 ```java
 package microweb.sample.entity;
@@ -794,6 +811,7 @@ import com.ultraschemer.microweb.persistence.Timeable;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Table;
+import java.util.UUID;
 
 @Entity
 @Table(name = "document")
@@ -806,6 +824,9 @@ public class Document extends Timeable {
 
     @Column(name = "status")
     private String status;
+
+    @Column(name="owner_user_id")
+    private UUID ownerUserId;
 
     public String getName() {
         return name;
@@ -830,55 +851,13 @@ public class Document extends Timeable {
     public void setStatus(String status) {
         this.status = status;
     }
-}
-```
 
-File: `src/main/java/microweb/sample/entity/User_Image.java`
-
-```java
-package microweb.sample.entity;
-
-import com.ultraschemer.microweb.persistence.Timeable;
-
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Table;
-import java.util.UUID;
-
-@Entity
-@Table(name = "user__image")
-public class User_Image extends Timeable {
-    @Column(name = "alias")
-    private String alias;
-
-    @Column(name = "image_id")
-    private UUID imageId;
-
-    @Column(name = "user_id")
-    private UUID userId;
-
-    public String getAlias() {
-        return alias;
+    public UUID getOwnerUserId() {
+        return ownerUserId;
     }
 
-    public void setAlias(String alias) {
-        this.alias = alias;
-    }
-
-    public UUID getImageId() {
-        return imageId;
-    }
-
-    public void setImageId(UUID imageId) {
-        this.imageId = imageId;
-    }
-
-    public UUID getUserId() {
-        return userId;
-    }
-
-    public void setUserId(UUID userId) {
-        this.userId = userId;
+    public void setOwnerUserId(UUID ownerUserId) {
+        this.ownerUserId = ownerUserId;
     }
 }
 ```
@@ -2062,7 +2041,7 @@ public class GuiUserLogoffProcessController extends SimpleController {
 
 Now a complete cycle of login and logoff can be performed in this simple system.
 
-#### 5.1.6.3. A customized business rule with user interface
+#### 5.1.6.3. A customized business rule
 
 So far, we learned how to create system database, Entity mapping, define Views and Controllers, and define end-points for REST Routes. But nothing about how to define business rules have been told. This section is to close such gap.
 
@@ -2130,7 +2109,7 @@ The class above will be used to all Business classes, and they'll receive a Vert
 
 Now, let's structure our first business class - that dealing with image storing and retrieving. The most important features of such class is to define a CRUD for Images, and to link them to users, under the owner resposibility:
 
-__File__ `src/java/microweb/sample/domain/ImageManagement.java`:
+__File__ `src/main/java/microweb/sample/domain/ImageManagement.java`:
 ```java
 package microweb.sample.domain;
 
@@ -2147,7 +2126,7 @@ public class ImageManagement extends StandardDomain {
         super(factory, vertx);
     }
 
-    public UUID save(User user, String imageFileName) {
+    public UUID save(User user, String imageFileName, String imageName) {
         // Implement image saving routines here.
         return null;
     }
@@ -2172,14 +2151,310 @@ To use the business class above, the user need to know other users, and maybe cr
 
 The first business function to define is `ImageManagement.save`, to populate our database with images.
 
-__File__ `src/java/microweb/sample/domain/ImageManagement.java`, method `ImageManagement.save()`:
+__File__ `src/main/java/microweb/sample/domain/ImageManagement.java`, method `ImageManagement.save()`:
 ```java
-// TODO: continue from here.
+    public void save(ImageRegistrationData imageRegistrationData, BiConsumer<UUID, StandardException> resultHandler) {
+        // A.1: Assure the input parameter is respecting its contract:
+        try {
+            Validator.ensure(imageRegistrationData, 500);
+        } catch(StandardException e) {
+            resultHandler.accept(null, e);
+        }
+
+        // A.2: Isolate the entire operation in a new thread, since it can be time and resource consuming:
+        new Thread(() -> {
+            try {
+                // A.3: Read file:
+                File file = new File(imageFileName);
+                byte[] fEncoded = Base64.getEncoder().encode(Files.readAllBytes(file.toPath()));
+
+                // A.4: Convert it to String:
+                String base64contents = new String(fEncoded, StandardCharsets.US_ASCII);
+
+                try(Session session = this.openTransactionSession()) {
+                    // A.5: Save image in database
+                    Image img = new Image();
+                    img.setBase64data(base64contents);
+                    img.setName(imageRegistrationData.getName());
+                    img.setOwnerUserId(imageRegistrationData.getUserId());
+                    session.persist(img);
+
+                    // A.6: Commit saved data:
+                    session.getTransaction().commit();
+
+                    // A.7: Finish operation:
+                    resultHandler.accept(img.getId(), null);
+                }
+            } catch(Exception e) {
+                resultHandler.accept(null, new ImageManagementSaveException("Unable to persist image to user: ", e));
+            }
+        }).start();
+    }
 ```
 
 It can be seen, above, that the initial method signature change from a synchronous one to asynchronous. File reading and Base64 conversion can be a slow operation, so an asynchronous approach has been chosen.
 
-Then, we'll, now, create the interface for user management and image management, using this new defined Business rule.
+Other observation is that the input parameters changed from a list of _quasi_-primitive values to a Bean, with validation annotations. This change ocurred because it's easier to implement contract-validation in this way. Formerly, Microweb supported parameter contracts, enforced with AspectJ, but this approach has ben abandoned, since the explicit activation of `Validator.ensure` seemed easier to understand and easier to maintain.
+
+The class `ImageRegistrationData` is:
+
+__File__ `src/main/java/microweb/sample/domain/bean/ImageRegistrationData.java`:
+```java
+package microweb.sample.domain.bean;
+
+import net.sf.oval.constraint.NotEmpty;
+import net.sf.oval.constraint.NotNull;
+
+import java.io.Serializable;
+import java.util.UUID;
+
+public class ImageRegistrationData implements Serializable {
+    @NotNull
+    UUID userId;
+
+    @NotNull
+    @NotEmpty
+    String imageFileName;
+
+    @NotNull
+    @NotEmpty
+    String name;
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public String getImageFileName() {
+        return imageFileName;
+    }
+
+    public void setImageFileName(String imageFileName) {
+        this.imageFileName = imageFileName;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+```
+
+At this point, it's important to note that it's used a new Thread to release the processing costs of Image conversion to string and saving from main Microweb structure. This approach is acceptable because the two most sensitive components of Microweb Infra-Structure (Vert.X and Hibernate) are strongly thread-safe. Otherwise, locks and semaphores would be needed.
+
+_Obs.: No unit testing has been described in this README, but to develop Business Classes without proper unit-testing coverage is a __bad practice__. You'll receive the link of this sample, and some unit tests can be present on it, because they're being used, but not described here, since this isn't a tutorial about unit testing._
+
+_Obs.: To create Threads on fly isn't the best way to perform asynchronous operations in a Vert.X enabled environment, because it doesn't control Thread generation, and can provoke processing overloading. Vert.X has facilities to overcome this. But this isn't a Vert.X tutorial, so this approach isn't presented here, and hence outside the scope of this tutorial._
+
+Let's understand, point by point, all the details of the implemented Business Rule. The other implemented business rules won't be explained in so much detail, but they can be understood by analogy:
+
+* __A.1: Assure the input parameter is respecting its contract__: We defined a class to receive the image data to be saved. This class has been annotated using OVal, and a Contract has been defined to it. The validation, at this point, raises an HTTP 500 error, since it's not validation user input data, but internal data exchange in the system. It's considered standard, by Microweb, to raise HTTP 500 errors in Business Rules validations.
+* __A.2: Isolate the entire operation in a new thread, since it can be time and resource consuming__: The image to be saved is a binary file, which can be really big. To respect the timing constraints of Vert.X Web, and consequently, of Microweb, it has been chosen to isolate the entire business rule in a parallel thread, and process input data asynchronously.
+* __A.3: Read file__: The input image is being provided as a File. It can be a temporary or a definitive file, but a file, anyway. This approach is chosen because Vert.X Web register file uploads as registered files in filesystem. No genericity is lost.
+* __A.4: Convert it to String__: It has been chosen, to maintain the sample simple, to store images in database as Base64 Strings. This is a __very bad approach__, since there are lots of efficient distributed filesystems to be used to store binary data. But, in this sample, it's acceptable.
+* __A.5: Save image in database__: Once the `Image` object is populated, it is persisted, using Hibernate. To enable Microweb logging facilities, always insert and update data using the `Session.persist` method, from Hibernate. Block updates using HQL skip Microweb logging facilities.
+* __A.6: Commit saved data__: Necessary step to ensure data persistence.
+* __A.7: Finish operation__: Call the function consumer, to asynchronously finish the operation.
+
+Let's finish the implementation of Image business rules, implementing all business methods. Explanations about each method can be found in the code.
+
+The finished and complete implementation of `ImageManagement` is:
+
+__File__ `src/main/java/microweb/sample/domain/ImageManagement.java`:
+```java
+package microweb.sample.domain;
+
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.validation.Validator;
+import io.vertx.core.Vertx;
+import microweb.sample.domain.bean.ImageRegistrationData;
+import microweb.sample.domain.error.ImageManagementImageUserLinkingException;
+import microweb.sample.domain.error.ImageManagementReadException;
+import microweb.sample.domain.error.ImageManagementReadNotPermittedException;
+import microweb.sample.domain.error.ImageManagementSaveException;
+import microweb.sample.entity.Image;
+import microweb.sample.entity.User_Image;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.Base64;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+
+public class ImageManagement extends StandardDomain {
+    public ImageManagement(SessionFactory factory, Vertx vertx) {
+        super(factory, vertx);
+    }
+
+    public void save(ImageRegistrationData imageRegistrationData, BiConsumer<UUID, StandardException> resultHandler) {
+        // A.1: Assure the input parameter is respecting its contract:
+        try {
+            Validator.ensure(imageRegistrationData, 500);
+        } catch(StandardException e) {
+            resultHandler.accept(null, e);
+        }
+
+        // A.2: Isolate the entire operation in a new thread, since it can be time and resource consuming:
+        new Thread(() -> {
+            try {
+                // A.3: Read file:
+                File file = new File(imageRegistrationData.getImageFileName());
+                byte[] fEncoded = Base64.getEncoder().encode(Files.readAllBytes(file.toPath()));
+
+                // A.4: Convert it to String:
+                String base64contents = new String(fEncoded, StandardCharsets.US_ASCII);
+
+                try(Session session = openTransactionSession()) {
+                    // A.5: Save image in database
+                    Image img = new Image();
+                    img.setBase64data(base64contents);
+                    img.setName(imageRegistrationData.getName());
+                    img.setOwnerUserId(imageRegistrationData.getUserId());
+                    session.persist(img);
+
+                    // A.6: Commit saved data:
+                    session.getTransaction().commit();
+
+                    // A.7: Finish operation:
+                    resultHandler.accept(img.getId(), null);
+                }
+            } catch(Exception e) {
+                resultHandler.accept(null, new ImageManagementSaveException("Unable to persist image to user." , e));
+            }
+        }).start();
+    }
+
+    // Read, synchronously the Image object:
+    public Image read(User user, UUID imageId) throws StandardException {
+        // Implement image reading routines here.
+        try (Session session = openTransactionSession()){
+            Image image = session.createQuery("from Image where id = :iid", Image.class)
+                    .setParameter("iid", imageId)
+                    .getSingleResult();
+
+            if(!image.getOwnerUserId().equals(imageId)) {
+                // Verify if the user has access to such image:
+                List<User_Image> userImageList = session.createQuery("from User_Image where imageId = :iid and userId = :uid",
+                        User_Image.class).setParameter("iid", imageId).setParameter("uid", user.getId())
+                        .list();
+                if(userImageList.size() == 0) {
+                    throw new ImageManagementReadNotPermittedException("User has no permission to read such image.");
+                }
+            }
+            return image;
+        } catch(Exception e) {
+            throw new ImageManagementReadException("Unable to read image.", e);
+        }
+    }
+
+    // Link a user to an image, so that user can see the image on his/her user interface.
+    public void linkToUser(User owner, UUID imageId, UUID userId, String imageAlias) throws StandardException {
+        try (Session session = openTransactionSession()){
+            Image img = session.createQuery("from Image where id = :iid and ownerUserId = :oid", Image.class)
+                    .setParameter("iid", imageId)
+                    .setParameter("oid", owner.getId())
+                    .getSingleResult();
+            User_Image userImage = new User_Image();
+            userImage.setUserId(userId);
+            userImage.setImageId(img.getId());
+            userImage.setAlias(imageAlias);
+            session.persist(userImage);
+            session.getTransaction().commit();
+        } catch(Exception e) {
+            throw new ImageManagementImageUserLinkingException(e.getLocalizedMessage(), e);
+        }
+    }
+
+    // Read and decode image data asynchronously.
+    public void readAndDecode(User user, UUID imageId, TriConsumer<Image, byte[], StandardException> resultHandler) {
+        new Thread(() -> {
+            try {
+                Image img = read(user, imageId);
+                byte []imgByteRepresentation = Base64.getDecoder().decode(img.getBase64data());
+                resultHandler.accept(img, imgByteRepresentation, null);
+            } catch(StandardException e) {
+                resultHandler.accept(null, null, e);
+            } catch(Exception e) {
+                resultHandler.accept(null, null, new ImageManagementReadException(e.getLocalizedMessage(), e));
+            }
+        }).start();
+    }
+}
+```
+
+The newly created exceptions for this Business class are:
+
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementSaveException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageManagementSaveException extends StandardException {
+    public ImageManagementSaveException(String message, Exception cause) {
+        super("9880d7d9-9496-4324-a605-f8d19ac3788d", 500, message, cause);
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementReadException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageManagementReadException extends StandardException {
+    public ImageManagementReadException(String message, Exception cause) {
+        super("efa3115f-c742-410c-a908-5eb2bda6de24", 500, message, cause);
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementReadNotPermittedException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageManagementReadNotPermittedException extends StandardException {
+    public ImageManagementReadNotPermittedException(String message) {
+        super("b2d710c4-95d8-4f43-9f13-bf1810f36f36", 500, message);
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementImageUserLinkingException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageManagementImageUserLinkingException extends StandardException {
+    public ImageManagementImageUserLinkingException(String message, Exception cause) {
+        super("a2baffbb-149c-4f99-8b1c-85e500798f7c", 500, message, cause);
+    }
+}
+
+```
+
+As a final observation, you can see the methods `ImageManagement.linkToUser` and `ImageManagement.read`, which are implemented in __synchronous__ fashion. The conversion of string data to binary, from method `ImageManagement.read`, can be specially slow, so an asynchronous version of it, already performing the byte conversion is given.
+
+Then, we'll, now, create the interface for user management and image management, using this new defined Business rule and the current existent user management business rules Microweb provides.
+
+#### 5.1.6.4. Image management user interface
+
+__TODO: continue from here.__
 
 ## 5.2. Simple user manager system, with OpenID support
 
