@@ -73,9 +73,10 @@ public class AuthorizationFilter implements BasicController {
         route.blockingHandler(routingContext -> {
             String contentType = routingContext.request().getHeader("Content-type");
             if(contentType == null) {
-                // This ia an exception prone situation - since every Microweb call MUST HAVE CONTENT-TYPE HEADER.
-                // Force multipart to get a possible Content-type header!
-                routingContext.request().setExpectMultipart(true);
+                // This ia an exception prone situation - force multipart:
+                try {
+                    routingContext.request().setExpectMultipart(true);
+                } catch(Throwable t) { /* Ignore */ }
             }
 
             // Primeiro, elimina todas as rotas que não são filtradas por autorização:

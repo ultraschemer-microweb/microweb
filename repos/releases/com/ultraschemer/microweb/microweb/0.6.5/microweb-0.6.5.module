@@ -11,7 +11,7 @@
   "createdBy": {
     "gradle": {
       "version": "6.1.1",
-      "buildId": "cgbzcfhoxvauvcalsty4bmvcpe"
+      "buildId": "gscpt6yh2zajffteukadi43xxu"
     }
   },
   "variants": [
@@ -114,11 +114,11 @@
         {
           "name": "microweb-0.6.5.jar",
           "url": "microweb-0.6.5.jar",
-          "size": 158158,
-          "sha512": "dcd78b1b5e5812e8d4771dad68ea39f6fc58193482ab98094de3325480e9a34cdefbcf2b22ab525b5a0255ac35db7526c5bf1ebeae19ef0f415876e3137eba82",
-          "sha256": "b482628d816c191645872999abc95dbafecac062ce7de734765ab4368d3f7c10",
-          "sha1": "8605ac7ccfc1399875f057a497c56f49263d41f5",
-          "md5": "22a3fc36dcdf8e2713147fe55fb0fe19"
+          "size": 158224,
+          "sha512": "a9fc53498b47b31e37b4a2d764f928d6e1dcd2736670fcc2019392c6b8f3c48834bdd569506e7fcb3aa46fda41242ef8fb0ac24e0813afab8b83fd3b4159ee0c",
+          "sha256": "da9cd1ddd6afcef5e8cc62dfec2a9dd2510e13afabaa08ac2c9538217a89a3b0",
+          "sha1": "59e744f977320da0c14c0d36b15f473b6a4331ef",
+          "md5": "2654913191e7c7aa5e930ba3239b08d2"
         }
       ]
     },
@@ -221,11 +221,11 @@
         {
           "name": "microweb-0.6.5.jar",
           "url": "microweb-0.6.5.jar",
-          "size": 158158,
-          "sha512": "dcd78b1b5e5812e8d4771dad68ea39f6fc58193482ab98094de3325480e9a34cdefbcf2b22ab525b5a0255ac35db7526c5bf1ebeae19ef0f415876e3137eba82",
-          "sha256": "b482628d816c191645872999abc95dbafecac062ce7de734765ab4368d3f7c10",
-          "sha1": "8605ac7ccfc1399875f057a497c56f49263d41f5",
-          "md5": "22a3fc36dcdf8e2713147fe55fb0fe19"
+          "size": 158224,
+          "sha512": "a9fc53498b47b31e37b4a2d764f928d6e1dcd2736670fcc2019392c6b8f3c48834bdd569506e7fcb3aa46fda41242ef8fb0ac24e0813afab8b83fd3b4159ee0c",
+          "sha256": "da9cd1ddd6afcef5e8cc62dfec2a9dd2510e13afabaa08ac2c9538217a89a3b0",
+          "sha1": "59e744f977320da0c14c0d36b15f473b6a4331ef",
+          "md5": "2654913191e7c7aa5e930ba3239b08d2"
         }
       ]
     }
