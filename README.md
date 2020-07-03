@@ -2589,9 +2589,9 @@ Then, we'll, now, create the interface for user management and image management,
 
 #### 5.1.6.4. Image management user interface
 
-Since this is a tutorial about Microweb and this section is about how to integrate business layers and views, we'll develop the _simplest_ useful view to add, list, and present images in such system, finishing the entire basic Microweb use tutorial. After that, will be implemented the REST api versions of these utilities, and define a simple permissions control.
+Since this is a tutorial about Microweb and this section is about how to integrate business layers and views, we'll develop the _simplest_ useful view to add, list, and present images in such system, finishing the entire basic Microweb use tutorial. After that, it will be implemented the REST api versions of these utilities, and it'll be defined a simple permissions control.
 
-In the application homepage, we'll add a form to upload images, and below this form, the list of all uploaded images. Clicking on one element of such list, a new page, with image details will be present. The image details includes image extra-data, and a form to add users which can see the image, and a suitable alias to that image.
+In the application homepage, we'll add a form to upload images, and below this form, the list of all uploaded images. Clicking on one element of such list, a new page, with image details, will be present. The image details includes image extra-data, a link to download image, and a form to add users which can see the image, and a suitable alias to that image.
 
 From homepage, a link to a user management page will be present too. This management page permits the creation of new users, and the current users listing.
 
