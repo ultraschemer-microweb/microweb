@@ -1,5 +1,6 @@
 package com.ultraschemer.microweb.proxy;
 
+import com.google.common.base.Throwables;
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.UnsupportedMethodException;
 import io.vertx.core.http.HttpServerRequest;
@@ -48,15 +49,22 @@ public class ProxyEvaluator {
                 throw new UnsupportedMethodException("Method request not supported by Multiplexer proxy.");
         }
 
-        // Return response - any exception Microweb handles:
-        try(Response res = client.newCall(req).execute()) {
-            // Set all response headers:
-            for(Pair<? extends String, ? extends String> entry: res.headers()) {
-                response.putHeader(entry.getFirst(), entry.getSecond());
-            }
+        // Isolate call in an exclusive thread.
+        new Thread(() -> {
+            // TODO: Use Vert.X futures (in executeBlocking method) for efficient Threads and resources management.
+            // Return response - any exception Microweb handles:
+            try (Response res = client.newCall(req).execute()) {
+                // Set all response headers:
+                for (Pair<? extends String, ? extends String> entry : res.headers()) {
+                    response.putHeader(entry.getFirst(), entry.getSecond());
+                }
 
-            // Call response:
-            response.setStatusCode(res.code()).end(Objects.requireNonNull(res.body()).string());
-        }
+                // Call response:
+                response.setStatusCode(res.code()).end(Objects.requireNonNull(res.body()).string());
+            } catch (Exception e) {
+                response.setStatusCode(500).end("Unable to perform proxy call: " + e.getLocalizedMessage() + "\n" +
+                        Throwables.getStackTraceAsString(e));
+            }
+        }).start();
     }
 }

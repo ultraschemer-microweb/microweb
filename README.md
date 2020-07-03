@@ -261,10 +261,9 @@ The next features will be provided:
 2. REST interface enabling all services above to a public API
 3. Attribution of user roles
 4. Simple permission control based on user roles
-6. Each user can store text documents and images on his/her accounts.
+6. Each user can store images on his/her accounts.
 7. Data management interface must be available to users.
 8. REST interfaces for user data management must be available to users.
-9. Read-only comments can be attached to documents and images.
 
 After defining the project objectives, project conditions are defined:
 
@@ -683,6 +682,8 @@ $ source venv/bin/activate
 If everything is OK, you can see the new tables in database:
 
 ![new tables](new-tables.png)
+
+A table for text documents has been added only as an extra _migration/database mapping_ example. This table will be mapped but no Business Rules will be defined for it.
 
 ### 5.1.4. Database Mapping and Hibernate
 Microweb uses [Hibernate ](http://hibernate.org/) as its ORM. Hibernate is a very known Java ORM and Framework, and lots of tutorials about it exist online, so we won't bother to present this tool. We assume you know how to use Hibernate correctly, to read and understand this tutorial section.
@@ -2272,25 +2273,24 @@ package microweb.sample.domain;
 
 import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.Identifiable;
 import com.ultraschemer.microweb.validation.Validator;
 import io.vertx.core.Vertx;
+import microweb.sample.domain.bean.ImageListingData;
 import microweb.sample.domain.bean.ImageRegistrationData;
-import microweb.sample.domain.error.ImageManagementImageUserLinkingException;
-import microweb.sample.domain.error.ImageManagementReadException;
-import microweb.sample.domain.error.ImageManagementReadNotPermittedException;
-import microweb.sample.domain.error.ImageManagementSaveException;
+import microweb.sample.domain.error.*;
 import microweb.sample.entity.Image;
 import microweb.sample.entity.User_Image;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
+import javax.persistence.PersistenceException;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.Base64;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class ImageManagement extends StandardDomain {
     public ImageManagement(SessionFactory factory, Vertx vertx) {
@@ -2333,6 +2333,61 @@ public class ImageManagement extends StandardDomain {
                 resultHandler.accept(null, new ImageManagementSaveException("Unable to persist image to user." , e));
             }
         }).start();
+    }
+
+    // List images from user:
+    public List<ImageListingData> list(User user) throws StandardException {
+        try(Session session = openTransactionSession()) {
+            List<ImageListingData> res = new LinkedList<>();
+
+            List<User_Image> accessibleImageList =
+                    session.createQuery("from User_Image where userId = :uid", User_Image.class).list();
+            HashMap<UUID, User_Image> userImageMap = new HashMap<>();
+            accessibleImageList.forEach((i) -> userImageMap.put(i.getImageId(), i));
+
+            List<Image> allImages;
+            if(accessibleImageList.size() > 0) {
+                allImages = session.createQuery("from Image where id in :iid or ownerUserId = :oid order by ownerUserId", Image.class)
+                        .setParameterList("iid", accessibleImageList.stream().map(User_Image::getImageId).collect(Collectors.toList()))
+                        .setParameter("oid", user.getId())
+                        .list();
+            } else {
+                allImages = session.createQuery("from Image where ownerUserId = :oid order by ownerUserId", Image.class)
+                        .setParameter("oid", user.getId())
+                        .list();
+            }
+
+            UUID ownerUserId = null;
+            String ownerUserName = null;
+            for(Image i: allImages) {
+                if(!i.getOwnerUserId().equals(ownerUserId)) {
+                    User u = session.createQuery("from User where id = :uid", User.class)
+                            .setParameter("uid", i.getOwnerUserId())
+                            .getSingleResult();
+                    ownerUserId = u.getId();
+                    ownerUserName = u.getName();
+                }
+
+                ImageListingData imageListingData = new ImageListingData();
+                imageListingData.setId(i.getId());
+                imageListingData.setName(i.getName());
+                imageListingData.setOwnerId(ownerUserId);
+                imageListingData.setOwnerName(ownerUserName);
+                imageListingData.setCreatedAt(i.getCreatedAt());
+                if(userImageMap.containsKey(i.getId())) {
+                    User_Image ui = userImageMap.get(i.getId());
+                    imageListingData.setAlias(ui.getAlias());
+                }
+                res.add(imageListingData);
+            }
+
+            // Set return data in creation order:
+            res.sort(Comparator.comparing(ImageListingData::getCreatedAt));
+
+            return res;
+        } catch(PersistenceException pe) {
+            throw new ImageManagementListingException("Unable to list images.", pe);
+        }
     }
 
     // Read, synchronously the Image object:
@@ -2448,13 +2503,109 @@ public class ImageManagementImageUserLinkingException extends StandardException 
 
 ```
 
-As a final observation, you can see the methods `ImageManagement.linkToUser` and `ImageManagement.read`, which are implemented in __synchronous__ fashion. The conversion of string data to binary, from method `ImageManagement.read`, can be specially slow, so an asynchronous version of it, already performing the byte conversion is given.
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementListingException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageManagementListingException extends StandardException {
+    public ImageManagementListingException(String message, Throwable cause) {
+        super("b751fabe-7134-4b80-95f3-94cd5ed01b07", 500, message, cause);
+    }
+}
+```
+
+And the listing image bean is:
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementListingException.java`:
+```java
+package microweb.sample.domain.bean;
+
+import java.io.Serializable;
+import java.util.Date;
+import java.util.UUID;
+
+public class ImageListingData implements Serializable {
+    private UUID id;
+    private String name;
+    private String alias;
+    private UUID ownerId;
+    private String ownerName;
+    private Date createdAt;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+
+    public UUID getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(UUID ownerId) {
+        this.ownerId = ownerId;
+    }
+
+    public String getOwnerName() {
+        return ownerName;
+    }
+
+    public void setOwnerName(String ownerName) {
+        this.ownerName = ownerName;
+    }
+
+    public Date getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Date createdAt) {
+        this.createdAt = createdAt;
+    }
+}
+```
+
+As a final observation, you can see the methods `ImageManagement.linkToUser`, `ImageManagement.list` and `ImageManagement.read`, which are implemented in __synchronous__ fashion. The conversion of string data to binary, from method `ImageManagement.read`, can be specially slow, so an asynchronous version of it, already performing the byte conversion, is given.
 
 Then, we'll, now, create the interface for user management and image management, using this new defined Business rule and the current existent user management business rules Microweb provides.
 
 #### 5.1.6.4. Image management user interface
 
-__TODO: continue from here.__
+Since this is a tutorial about Microweb and this section is about how to integrate business layers and views, we'll develop the _simplest_ useful view to add, list, and present images in such system, finishing the entire basic Microweb use tutorial. After that, will be implemented the REST api versions of these utilities, and define a simple permissions control.
+
+In the application homepage, we'll add a form to upload images, and below this form, the list of all uploaded images. Clicking on one element of such list, a new page, with image details will be present. The image details includes image extra-data, and a form to add users which can see the image, and a suitable alias to that image.
+
+From homepage, a link to a user management page will be present too. This management page permits the creation of new users, and the current users listing.
+
+Let's adjust the homepage template, and create the Image and Users' page templates:
+
+
+
+#### 5.1.6.4. Exposing a REST API
+
+__TODO__
+
+#### 5.1.6.5. A simple customised resource permission control
+
+__TODO__
 
 ## 5.2. Simple user manager system, with OpenID support
 
