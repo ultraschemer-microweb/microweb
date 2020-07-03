@@ -15,10 +15,13 @@ Microweb has these characteristics:
 * Default entity logging on register creation and updating.
 * Default simple user management.
 * Default abstractions for Filter and Request Controllers.
+* Intrinsic support to OpenId and Resource Permission, using KeyCloak.
+
+And three internal functionalities, which can be used, but are unadvised:
+
 * Distributed register lockers, to define distributed critical sections.
 * Default entity search routines.
 * Logic Big Integer sequence implementation.
-* Intrinsic support to OpenId and Resource Permission, using KeyCloak.
 
 The main advantages of microweb, currently, are:
 

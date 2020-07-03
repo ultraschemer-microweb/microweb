@@ -20,8 +20,9 @@ public class LogoffController extends SimpleController {
     @Override
     public void executeEvaluation(RoutingContext routingContext, HttpServerResponse response) throws StandardException {
         String contentType = routingContext.request().getHeader("Content-type");
-        if(contentType != null &&
-                contentType.toLowerCase().trim().startsWith("multipart/form-data")) {
+        if(contentType == null) {
+            // This ia an exception prone situation - since every Microweb call MUST HAVE CONTENT-TYPE HEADER.
+            // Force multipart to get a possible Content-type header!
             routingContext.request().setExpectMultipart(true);
         }
 

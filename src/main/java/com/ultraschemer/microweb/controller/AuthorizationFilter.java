@@ -5,6 +5,7 @@ import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.error.StandardRuntimeException;
 import com.ultraschemer.microweb.error.UnknownException;
+import com.ultraschemer.microweb.error.ValidationException;
 import com.ultraschemer.microweb.vertx.AsyncExecutor;
 import com.ultraschemer.microweb.vertx.BasicController;
 import io.vertx.core.json.Json;
@@ -71,8 +72,9 @@ public class AuthorizationFilter implements BasicController {
         route.handler(BodyHandler.create());
         route.blockingHandler(routingContext -> {
             String contentType = routingContext.request().getHeader("Content-type");
-            if(contentType != null &&
-                    contentType.toLowerCase().trim().startsWith("multipart/form-data")) {
+            if(contentType == null) {
+                // This ia an exception prone situation - since every Microweb call MUST HAVE CONTENT-TYPE HEADER.
+                // Force multipart to get a possible Content-type header!
                 routingContext.request().setExpectMultipart(true);
             }
 
