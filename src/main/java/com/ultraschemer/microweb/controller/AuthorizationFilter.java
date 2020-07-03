@@ -5,7 +5,6 @@ import com.ultraschemer.microweb.entity.User;
 import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.error.StandardRuntimeException;
 import com.ultraschemer.microweb.error.UnknownException;
-import com.ultraschemer.microweb.error.ValidationException;
 import com.ultraschemer.microweb.vertx.AsyncExecutor;
 import com.ultraschemer.microweb.vertx.BasicController;
 import io.vertx.core.json.Json;
