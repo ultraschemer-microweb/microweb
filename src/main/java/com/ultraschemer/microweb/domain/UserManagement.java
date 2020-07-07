@@ -263,6 +263,7 @@ public class UserManagement {
             // Link the user to his/her role:
             newUR.setUserId(newU.getId());
             newUR.setRoleId(role.getId());
+            newUR.setStatus("active");
             session.persist(newUR);
 
             // PErsist data in database:
