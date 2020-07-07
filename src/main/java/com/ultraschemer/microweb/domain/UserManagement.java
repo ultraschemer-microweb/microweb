@@ -256,6 +256,8 @@ public class UserManagement {
             newU.setAlias(u.getAlias());
             newU.setPassword(Security.hashade(u.getPassword()));
             newU.setStatus("new");
+            newU.setGivenName(u.getGivenName());
+            newU.setFamilyName(u.getFamilyName());
             session.persist(newU);
 
             // Link the user to his/her role:
