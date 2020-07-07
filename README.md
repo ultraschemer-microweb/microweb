@@ -234,11 +234,23 @@ It's a consolidated concept, in Object-Relational-Mapping, that tables can be ma
 
 Considering all concepts above (in the __Section 4__), we can dive into practical details of Microweb and the best way to make such dive is through a practical sample. Migration examples can be seen in both __5.1__ and __5.2__ sections.
 
-# 5. Project Samples
+# 5. Microweb Use Cases
 
-Two project samples are used to show how Microweb works. The first project is a simple user management project, without OpenID support. The second project is the same project, but with OpenId support, and permissions control.
+Two project samples are used to show how Microweb works. The first project is a simple user management project, without OpenID support. The second project is the same project, but with OpenId support permissions control and an external service, using other technology than the Java Platform.
 
-Both projects are written in Java, which is the _lingua franca_ of JVM Plataform (which is called ___Java___ Platform).
+Both projects are written mainly in Java, which is the _lingua franca_ of JVM Plataform (which is called ___Java___ Platform).
+
+The first project presents the first two use cases for Microweb:
+
+* Use Case __MVC Web Application Platform__: This is the very basic use case for Microweb. If you want to use Microweb as a MVC framework, it fits suitably, but it doesn't shine. Other frameworks in Java (Spring, JEE, Struts), or other languages (Laravel, Ruby-on-Rails, Django) are more stable and flexible to use for this purpose - but Microweb is suitable to be used as a fairly complete and simple MVC Framework.
+* Use Case __HTTP REST Api with Custom Resource Control__: Microweb brings facilities for this use case, and to use such features can really justify Microweb use, but this feature is very simple and can be easily replicated with other frameworks, most notably the non-Java complex ones (like Laravel, Rails or Django).
+
+The second project reuses the first two use cases and go deeper on Microweb really useful use cases:
+
+* Use Case __HTTP Web Application and API with complex Resource Control and OpenID support__: Now Microweb starts to be a serious contender to competitors. Microweb is __deeply__ integrated with __KeyCloak__, in __run-time__. KeyCloak offers strong support to other Java technologies, like __Spring__ and __JEE__, but in a different fashion than Microweb. Microweb is made to be used alongside __KeyCloak__ in __run-time__, being KeyCloak just another associated __microservice__, differently from KeyCloak own approach with JEE and Spring. No intentions to say which approach is best, since this kind of analysis is subjective.
+* Use Case __OpenID enabled HTTP Web Application and API over heterogeneous SOA infra-structure__: This is __THE__ Microweb main use case, where it shines. Microweb can be used as a central proxy and service registrar for application services, under a SOA architecture, using HTTP REST as the standard network integration protocol. All resources can be registered, filtered and their permissions can be controlled by Microweb web microservices or clusters. Everything is stateless, and user and permission control is assured by the pair Microweb-KeyCloak.
+
+Let's start creating the first project.
 
 ## 5.1. Simple user manager system, without OpenID support
 
@@ -2618,7 +2630,7 @@ __File__ `src/main/resources/views/homePage.ftl`:
         <p>Logoff <a href="/v0/gui-user-logoff">here</a> | Manage <a href="/v0/gui-user-management">users</a></p>
         <hr/>
         <p>Add image here:</p>
-        <form action="/v0/image" method="post" enctype="multipart/form-data">
+        <form action="/v0/gui-image" method="post" enctype="multipart/form-data">
             <table style="width: 100%">
                 <tr>
                     <td style="width: 30%">Name:</input></td>
@@ -2647,10 +2659,10 @@ __File__ `src/main/resources/views/homePage.ftl`:
                 <td>${image.name}</td>
                 <td>${image.ownerName}</td>
                 <td><#if image.alias??>${image.alias}</#if></td>
-                <td><a href="/v0/image/${image.id}/raw"><strong>&#8595;</strong></a></td>
+                <td><a href="/v0/gui-image/${image.id}/raw"><strong>&#8595;</strong></a></td>
                 <td>
                     <#if (user.name == image.ownerName)>
-                        <form method="post" action="/v0/image/${image.id}/assign">
+                        <form method="post" action="/v0/gui-image/${image.id}/assign">
                             Alias:
                             <input type="text" name="alias"/>
                             User:
@@ -2771,9 +2783,9 @@ One detail is important: no cache-control is enabled for this controller call, b
 Analysing `homePage.ftl` Template, we see it calls, now, four new different routes:
 
 * `/v0/gui-user-management`, through `GET` method
-* `/v0/image/${image.id}/raw`, through `GET` method
-* `/v0/image/${image.id}/assign`, through `POST` method
-* `/v0/image`, through `POST` method
+* `/v0/gui-image/${image.id}/raw`, through `GET` method
+* `/v0/gui-image/${image.id}/assign`, through `POST` method
+* `/v0/gui-image`, through `POST` method
 
 These new routes must be registered in the App. Other routes, regarding Image business rules, are registered too, and the App class turns:
 
@@ -2828,9 +2840,9 @@ public class App extends WebAppVerticle {
         registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
 
         // Image manipulation:
-        registerController(HttpMethod.POST, "/v0/image/:id/assign", new GuiImageAssignController());
-        registerController(HttpMethod.GET, "/v0/image/:id/raw", new GuiImageRawDataController());
-        registerController(HttpMethod.POST, "/v0/image", new GuiImageCreationController());
+        registerController(HttpMethod.POST, "/v0/gui-image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/gui-image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/gui-image", new GuiImageCreationController());
 
         // User management:
         registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
@@ -2860,9 +2872,467 @@ These new routes are added to `App` class, too:
 
 These routes are used by the User Management interface, and will be explained later.
 
+The first route needing to be implemented is the `/v0/gui-user-management`, to manage users. Until now, this is a single-user system. Adding user management, we can turn it multi-user, as any Web Application. This route is associated to `GuiUserManagementController` Controller class, as can be seen in `App` implementation, above. This controller implementation is shown below:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserManagementController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.RoleManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.domain.bean.UserData;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.view.FtlHelper;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class GuiUserManagementController extends SimpleController {
+    private static Template userManagementTemplate;
+
+    static {
+        try {
+            userManagementTemplate = FtlHelper.getConfiguration().getTemplate("userManagementPage.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    public GuiUserManagementController() {
+        super(500, "18478c45-624d-41d1-b284-8aec7520914e");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        List<UserData> users = UserManagement.loadUsers(1000, 0);
+        users.sort(Comparator.comparing(UserData::getName));
+        Map<String, Object> dataRoot = new HashMap<>();
+        dataRoot.put("user", routingContext.get("user"));
+        dataRoot.put("users", users);
+        dataRoot.put("roles", RoleManagement.loadAllRoles());
+        routingContext
+                .response()
+                .putHeader("Content-type", "text/html")
+                .putHeader("Cache-Control", "no-cache")
+                .end(FtlHelper.processToString(userManagementTemplate, dataRoot));
+    }
+}
+```
+
+It's possible to see that this controller is minimal. It loads a list of users (limited to 1000 - pagination can be added by the reader, later), load the current logged user (which can be obtained by a call of `routingContext.get("user")`, in a logged call, which is called after `AuthorizationFilter` - i.e., any logged call), the possible user roles, and then it renders the user management template, no caching it.
+
+Since this controller is not rendering cacheable data, we can assume it is used as a redirection from other calls.
+
+Let's examine the user management template:
+
+__File__ `src/main/resources/views/userManagementPage.ftl`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>User Management</p>
+    <p>Welcome <strong>${user.name}</strong>!</p>
+    <p>Return to <a href="/v0">home</a></p>
+    <hr/>
+    <form method="post" action="/v0/gui-user">
+        <table>
+            <tr>
+                <td>Name:</td>
+                <td style="padding-left: 10px"><input type="text" name="name"/></td>
+            </tr>
+            <tr>
+                <td>Password:</td>
+                <td style="padding-left: 10px"><input type="password" name="password"/></td></tr>
+            <tr>
+                <td>Password confirmation:</td>
+                <td style="padding-left: 10px"><input type="password" name="passConfirmation"/></td>
+            </tr>
+            <tr>
+                <td>Given name:</td>
+                <td style="padding-left: 10px"><input type="text" name="givenName"/></td>
+            </tr>
+            <tr>
+                <td>Family name:</td>
+                <td style="padding-left: 10px"><input type="text" name="familyName"/></td>
+            </tr>
+            <tr>
+                <td>Role:</td>
+                <td style="padding-left: 10px">
+                    <select name="role">
+                        <#list roles as r>
+                        <option value="${r.name}">${r.name}</option>
+                        </#list>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        <input type="submit" value="Create"/>
+    </form>
+    <hr/>
+    <table style="width: 100%">
+        <tr>
+            <td>Name:</td>
+            <td>Roles:</td>
+            <td>Add Role:</td>
+        </tr>
+        <#list users as u>
+            <tr>
+                <td>${u.name}</td>
+                <td>
+                    <#list u.roles as r>
+                        <strong style="color: gray">[</strong>${r.name}<strong style="color: gray">]</strong>&nbsp;
+                    </#list>
+                </td>
+                <td>
+                    <form action="/v0/gui-user/${u.id}/role" method="post">
+                        <input type="hidden" name="userId" value="${u.id}"/>
+                        <select name="role">
+                            <#list roles as r>
+                                <option value="${r.name}">${r.name}</option>
+                            </#list>
+                        </select>
+                        <input type="submit" value="&#8594;"/>
+                    </form>
+                </td>
+            </tr>
+        </#list>
+    </table>
+</body>
+</html>
+```
+
+The template above shows a very simple page, with a form to add users, and a list of users, with an associated form to assign roles to them.
+
+Two of the previous defined routes are used in this page (`POST /v0/gui-user` and `POST /v0/gui-user/${u.id}/role`). The controllers linked to these routes, respectively, are:
+
+__File__ `src/main/java/microweb/sample/controller/GuiCreateUserController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.controller.bean.CreateUserData;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.validation.Validator;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+
+public class GuiCreateUserController extends SimpleController {
+    public GuiCreateUserController() {
+        super(500, "63ccb2ee-3c99-4b20-91d4-bb521f4945dd");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+
+        // Get form data:
+        CreateUserData userData = new CreateUserData();
+        userData.setName(request.getFormAttribute("name").toLowerCase());
+        userData.setAlias(userData.getName());
+        userData.setPassword(request.getFormAttribute("password"));
+        userData.setPasswordConfirmation(request.getFormAttribute("passConfirmation"));
+        userData.setGivenName(request.getFormAttribute("givenName"));
+        userData.setFamilyName(request.getFormAttribute("familyName"));
+
+        Validator.ensure(userData);
+
+        UserManagement.registerSimpleUser(userData, request.getFormAttribute("role"));
+
+        // Redirect to users management interface:
+        response.putHeader("Content-type", "text/html")
+                .putHeader("Location", "/v0/gui-user-management")
+                .setStatusCode(303)
+                .end();
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/controller/GuiAssignRoleController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+
+import java.util.UUID;
+
+public class GuiAssignRoleController extends SimpleController {
+    public GuiAssignRoleController() {
+        super(500, "0d75c820-7650-41cd-be63-01c91bf2e4ea");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+
+        UUID userId =  UUID.fromString(request.getFormAttribute("userId"));
+        String role = request.getFormAttribute("role");
+
+        // Set user role:
+        UserManagement.setRoleToUser(userId, role);
+
+        // Redirect to users management interface:
+        response.putHeader("Content-type", "text/html")
+                .putHeader("Location", "/v0/gui-user-management")
+                .setStatusCode(303)
+                .end();
+    }
+}
+```
+
+Both routes link the user management view to previously implemented User Management business rules, which belongs to standard Microweb libraries. Obviously the programmer can create his/her own customized business rules.
+
+Both controllers, after calling business rules, redirect back to the user management router, using an __HTTP 303 Redirection__ message.
+
+As can be seen, the linking between views and business rules (disregarding if they're __Model__ or __Controller__ in MVC) is made in Controller classes, and both views and domain classes and implementations are strongly aparted from each other.
+
+Now, we can take a look at Image management controllers, which are linked to Image Management business rules and `userManagementPage.ftl` Template:
+
+__File__ `src/main/java/microweb/sample/controller/GuiImageAssignController.java`, associated to `POST /v0/gui-image/:id/assign`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.ImageManagement;
+
+import java.util.UUID;
+
+public class GuiImageAssignController extends SimpleController {
+    public GuiImageAssignController() {
+        super(500, "c8fd6b8c-b0ec-4331-bf84-20382e616bf5");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+        UUID imageId = UUID.fromString(request.getParam("id"));
+        UUID userId = UUID.fromString(request.getFormAttribute("userId"));
+        String alias = request.getFormAttribute("alias");
+
+
+        ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+        imageManagement.linkToUser(context.get("user"), imageId, userId, alias);
+
+        // Redirect home:
+        response.putHeader("Content-type", "text/html")
+                .putHeader("Location", "/v0")
+                .setStatusCode(303)
+                .end();
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/controller/GuiImageRawDataController.java` associated to `GET /v0/gui-image/:id/raw`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.ImageManagement;
+import microweb.sample.entity.Image;
+
+import java.util.UUID;
+
+public class GuiImageRawDataController extends SimpleController {
+    public GuiImageRawDataController() {
+        super(500, "303c2bc7-cd1e-4570-b0c3-5a25053a8d1b");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+
+        //
+        // Load binary image and return it to caller:
+        //
+
+        // Create the business rule class, injecting the structural dependencies (Hibernate and Vertx):
+        ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+
+        // Load and decode image asynchronously, to maintain system performance:
+        imageManagement.readAndDecode(context.get("user"), UUID.fromString(request.getParam("id")),
+                (Image image, byte[]contents, StandardException error) ->
+                {   // Call asyncEvaluation, so Microweb ensures the HTTP call will be finished suitably:
+                    asyncEvaluation(500, "", context, () -> {
+                        if(error!= null) {
+                            throw error;
+                        }
+
+                        // Format image return data:
+                        String [] imageNameParts = image.getName().split("\\.");
+                        String imageExtension = imageNameParts[imageNameParts.length-1];
+                        if(imageExtension.equals("jpg")) {
+                            imageExtension = "jpeg";
+                        }
+                        Buffer b = Buffer.buffer(contents);
+
+                        // Return it to caller:
+                        response.putHeader("Content-Type", "image/" + imageExtension).end(b);
+                    });
+                });
+    }
+}
+
+```
+
+__File__ `src/main/java/microweb/sample/controller/GuiImageCreationController.java` associated to `POST /v0/gui-image`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.ImageManagement;
+import microweb.sample.domain.bean.ImageRegistrationData;
+import microweb.sample.view.FtlHelper;
+
+import javax.xml.bind.ValidationException;
+import java.io.File;
+import java.util.Set;
+import java.util.UUID;
+
+public class GuiImageCreationController extends SimpleController {
+    private static Template homePageTemplate = null;
+
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+        } catch(Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public GuiImageCreationController() {
+        super(500, "98473a7b-3fd6-4ef3-b1b7-b53210f7a75b");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        Set<FileUpload> uploads = context.fileUploads();
+
+        if(uploads.size()>1) {
+            // Delete all received files:
+            for(FileUpload f : uploads) {
+                new File(f.uploadedFileName()).delete();
+            }
+
+            throw new ValidationException("Only one file is expected.");
+        }
+
+        // Process upload:
+        for (FileUpload f : uploads) {
+            // Verify file extension:
+            if(!f.fileName().toLowerCase().matches("^.*\\.(jpg|jpeg|png|bmp|tiff|svg|ico|gif|webp)$")) {
+                // Delete file:
+                new File(f.uploadedFileName()).delete();
+                throw new ValidationException("Unexpected format for an image. Use files with these extensions: jpg, jpeg, png, bmp, tiff, svg, ico, gif or webp.");
+            }
+
+            //
+            // Save the file in database, asynchronously:
+            //
+
+            // Create the business rule class, injecting the structural dependencies (Hibernate and Vertx):
+            ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+
+            // Create the input bean:
+            User u = context.get("user");
+            ImageRegistrationData imageRegistrationData = new ImageRegistrationData();
+            imageRegistrationData.setUserId(u.getId());
+            imageRegistrationData.setImageFileName(f.uploadedFileName());
+
+            // Replaces the file name by given name, adding the extension:
+            String [] fileNameParts = f.fileName().split("\\.");
+            imageRegistrationData.setName(context.request().getFormAttribute("fileName") +
+                    "." + fileNameParts[fileNameParts.length-1]);
+
+            // Save file:
+            imageManagement.save(imageRegistrationData, (UUID uuid, StandardException e) -> {
+                // Process results using default method asyncEvaluation, which treats any error
+                // and ensures HTTP evaluation finalization:
+                asyncEvaluation(500, "d7056121-3bf2-4f72-92f4-7b0435954572", context, () -> {
+                    // Delete processed file:
+                    new File(f.uploadedFileName()).delete();
+
+                    // Raises exception, in the case of error - Microweb will deal with it suitably:
+                    if(e != null) {
+                        throw e;
+                    }
+
+                    // Redirect home:
+                    response.putHeader("Content-type", "text/html")
+                            .putHeader("Location", "/v0")
+                            .setStatusCode(303)
+                            .end();
+                });
+            });
+        }
+    }
+}
+```
+
+It can be seen above, there are two asynchronous controllers (`GuiImageRawDataController`, `GuiImageCreationController`) and one simple synchronous controller (`GuiImageAssignController`). It can be seen in the asynchronous controllers that the logic after the asynchronous call is made is enclosed in the method `SimpleController.asyncEvaluation`. This method deals correctly with any error which could happen in controller processing. If this method is not used, the programmer must ensure all errors will be evaluated correctly, otherwise the controller can hang up. Synchronous calls Microweb already deals with exceptions, ensuring response closing.
+
+Now we can define REST APIs to manage images and users, as all business rules and user interface is complete.
+
 #### 5.1.6.4. Exposing a REST API
 
-__TODO__
+In the sections before, we defined a set of usable business rules for our sample. Let's turn them usable through an API.
+
+_Obs.: This presented API isn't rigorously REST, nor HATEOAS. As told before, this is a Microweb tutorial, not a Tutorial about the applications of Microweb._
+
+Let's assume we have two kinds or entities:
+
+* User
+* Image
+
+We need to define CRUD REST operations for them, and some actions to be performed over these entities to create a well defined API on this sample system.
+
+The list of REST operations to be defined are below:
+
+* Create a user: `POST /v0/user`
+* Read a user: `GET /v0/user/:id`
+* Change password: `PATCH /v0/user/:id/password`
+* Register an Image: `POST /v0/image`
+* Link Image to User: `PUT /v0/image/:id/link`
+
+User Inactivation involves to take specific actions on his/her data and permissions, so user removal won't be implemented, because it implies to change business rules from Microweb. Image removal has the same kind of constraints, so any deletion operation won't be implemented in this sample.
+
+All the operations above already have the suitable business calls to be called, so we need to implement only the controllers.
+
+Listing operations should enable some kind of search query. To do so, you can use what you already learned about Microweb and use some query language as [GraphQL](https://graphql.org/) or [FIQL](https://tools.ietf.org/html/draft-nottingham-atompub-fiql-00) to implement such searches. Both languages have tools which support conversion from them to SQL, so to teach how to implement such queries is beyond the scope of this tutorial. Furthermore, Microweb has its own small query language, from class `com.ultraschemer.microweb.persistence.search.Searcher`. A small tutorial about this class can be written later.
+
+__TODO: continue from here__
 
 #### 5.1.6.5. A simple customised resource permission control
 
