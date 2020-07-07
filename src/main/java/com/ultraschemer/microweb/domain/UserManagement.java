@@ -283,6 +283,7 @@ public class UserManagement {
 
             newUR.setUserId(userId);
             newUR.setRoleId(role.getId());
+            newUR.setStatus("active");
 
             session.persist(newUR);
             session.getTransaction().commit();
