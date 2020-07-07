@@ -2590,7 +2590,7 @@ As a final observation, you can see the methods `ImageManagement.linkToUser`, `I
 
 Then, we'll, now, create the interface for user management and image management, using this new defined Business rule and the current existent user management business rules Microweb provides.
 
-#### 5.1.6.4. Image management user interface
+#### 5.1.6.4. Image management user interface: Linking Business Rules to View, through Controllers
 
 Since this is a tutorial about Microweb and this section is about how to integrate business layers and views, we'll develop the _simplest_ useful view to add, list, and present images in such system, finishing the entire basic Microweb use tutorial. After that, it will be implemented the REST api versions of these utilities, and it'll be defined a simple permissions control.
 
@@ -2598,9 +2598,267 @@ In the application homepage, we'll add a form to upload images, and below this f
 
 From homepage, a link to a user management page will be present too. This management page permits the creation of new users, and the current users listing.
 
+All business rules, in the case of error, throw an exception. No treatment will be given to them, and they return JSON data to the user. In the end of the project, we'll specialize `SimpleController` class to format better these exceptions.
+
 Let's adjust the homepage template, and create the Image and Users' page templates:
 
+__File__ `src/main/resources/views/homePage.ftl`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>This is Microweb generated Home Page!</p>
+    <#if logged>
+        <p>Welcome <strong>${user.name}</strong>!</p>
+        <p>Logoff <a href="/v0/gui-user-logoff">here</a> | Manage <a href="/v0/gui-user-management">users</a></p>
+        <hr/>
+        <p>Add image here:</p>
+        <form action="/v0/image" method="post" enctype="multipart/form-data">
+            <table style="width: 100%">
+                <tr>
+                    <td style="width: 30%">Name:</input></td>
+                    <td>File:</td>
+                </tr>
+                <tr>
+                    <td style="width: 30%"><input name="fileName" style="width: 100%" type="text"></input></td>
+                    <td style="padding-left: 10px"><input name="fileData" style="width: 100%" type="file"></input></td>
+                </tr>
+            </table>
+            <input type="submit" value="Send"></input>
+        </form>
+        <hr/>
+        <#if (images?size > 0) >
+        <p><strong>Your images here:</strong></p>
+        <table style="width: 100%">
+        <tr>
+            <td>Name:</td>
+            <td>Owner:</td>
+            <td>Alias:</td>
+            <td>Download:</td>
+            <td>Send to:</td>
+        </tr>
+        <#list images as image>
+            <tr>
+                <td>${image.name}</td>
+                <td>${image.ownerName}</td>
+                <td><#if image.alias??>${image.alias}</#if></td>
+                <td><a href="/v0/image/${image.id}/raw"><strong>&#8595;</strong></a></td>
+                <td>
+                    <#if (user.name == image.ownerName)>
+                        <form method="post" action="/v0/image/${image.id}/assign">
+                            Alias:
+                            <input type="text" name="alias"/>
+                            User:
+                            <select name="userId">
+                                <#list users as u>
+                                    <#if (u.name != user.name)>
+                                        <option value="${u.id}">${u.name}</option>
+                                    </#if>
+                                </#list>
+                            </select>
+                            <input type="submit" value="&#8594;"/>
+                        </form>
+                    </#if>
+                </td>
+            </tr>
+        </#list>
+        </table>
+        </#if>
+    <#else>
+        <p>Login <a href="/v0/gui-user-login">here</a>.</p>
+    </#if>
+</body>
+</html>
+```
 
+And let's improve the DefaultHomePageController class, so we can redirect calls to it, after some business rule operation:
+__File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.AuthManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.domain.bean.UserData;
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.ImageManagement;
+import microweb.sample.domain.bean.ImageListingData;
+import microweb.sample.view.FtlHelper;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class DefaultHomePageController extends SimpleController {
+    // C.1: Create a static instance of the default home page template variable, to store and cache it:
+    private static Template homePageTemplate = null;
+
+    // C.2: Initialize the template defined above, suitably:
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    // C.3: Define the default controller constructor:
+    public DefaultHomePageController() {
+        super(500, "a37c914b-f737-4a73-a226-7bd86baac8c3");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        // Define homepage data model:
+        Map<String, Object> homepageDataRoot = new HashMap<>();
+
+        // Load user cookie:
+        HttpServerRequest request = routingContext.request();
+        Cookie authorizationToken = request.getCookie("Microweb-Access-Token");
+
+        // Populate Homepage data model:
+        if(authorizationToken != null) {
+            // Get user data:
+            User u = AuthManagement.authorize(authorizationToken.getValue());
+
+            // Load images, if they are available for this user:
+            ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), routingContext.vertx());
+            List<ImageListingData> imageListingData = imageManagement.list(u);
+
+            // Load users, to assign images to them:
+            List<UserData> users = UserManagement.loadUsers(1000, 0);
+            users.sort(Comparator.comparing(UserData::getName));
+
+            homepageDataRoot.put("logged", true);
+            homepageDataRoot.put("user", u);
+            homepageDataRoot.put("images", imageListingData);
+            homepageDataRoot.put("users", users);
+        } else {
+            homepageDataRoot.put("logged", false);
+        }
+
+        // C.4: In the controller evaluation routine, render the template:
+        routingContext
+                .response()
+                .putHeader("Content-type", "text/html")
+                .putHeader("Cache-Control", "no-cache")
+                .end(FtlHelper.processToString(homePageTemplate, homepageDataRoot));
+    }
+}
+```
+It can be seen that some formatting actions, like ordering results, limiting the number of users loaded, have been performed in the controller. Such controller isn't considering pagination, nor user search, but the reader can add them later, as an exercise.
+
+The business rule class ImageManagement is instantiated directly in the controller, and its dependencies (Hibernate Session Factory and Vertx) are injected.
+
+Then, after the business call, view data (`homepageDataRoot`) is populated, and the Template View is called.
+
+One detail is important: no cache-control is enabled for this controller call, because the contents of this page is dynamic, and cache can be harmful in this circunstance.
+
+Analysing `homePage.ftl` Template, we see it calls, now, four new different routes:
+
+* `/v0/gui-user-management`, through `GET` method
+* `/v0/image/${image.id}/raw`, through `GET` method
+* `/v0/image/${image.id}/assign`, through `POST` method
+* `/v0/image`, through `POST` method
+
+These new routes must be registered in the App. Other routes, regarding Image business rules, are registered too, and the App class turns:
+
+__File__ `src/main/java/microweb/sample/App.java`:
+```java
+package microweb.sample;
+
+import com.ultraschemer.microweb.controller.LoginController;
+import com.ultraschemer.microweb.controller.LogoffController;
+import com.ultraschemer.microweb.domain.RoleManagement;
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.WebAppVerticle;
+import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.handler.StaticHandler;
+import microweb.sample.controller.*;
+
+// 1. Specialize WebAppVerticle:
+public class App extends WebAppVerticle {
+    static {
+        // 2. Initialize default entity util here:
+        EntityUtil.initialize();
+    }
+
+    @Override
+    public void initialization() throws Exception {
+        // 3. Verify the default user and the default role:
+        UserManagement.initializeRoot();
+
+        // 4. Initialize additional roles (if not using KeyCloak):
+        RoleManagement.initializeDefault();
+
+        // This is added to serve static files to project - All static files are
+        // to be stored at src/main/java/resources/webroot directory, which will be
+        // packed with the application Jar file
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // 5. Register authorization filter:
+        registerFilter(new AuthorizationFilter());
+
+        // 6. Register controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+
+        // Controllers used to manage User Login:
+        // L.1: Login default presentation:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        // L.2: Login submission handling:
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+
+        registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+
+        // Image manipulation:
+        registerController(HttpMethod.POST, "/v0/image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/image", new GuiImageCreationController());
+
+        // User management:
+        registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
+        registerController(HttpMethod.POST, "/v0/gui-user/:id/role", new GuiAssignRoleController());
+        registerController(HttpMethod.POST, "/v0/gui-user", new GuiCreateUserController());
+
+        // L.3:  Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+    }
+
+    public static void main(String[] args) {
+        // 7. Create the Application Vertx instance:
+        Vertx vertx = Vertx.vertx();
+
+        // 8. Deploy the WebAppVerticle:
+        vertx.deployVerticle(new App());
+    }
+}
+
+```
+
+These new routes are added to `App` class, too:
+
+* `/v0/gui-user/:id/role`, through `POST` method
+* `/v0/gui-user`, through `POST` method
+
+These routes are used by the User Management interface, and will be explained later.
 
 #### 5.1.6.4. Exposing a REST API
 
