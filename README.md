@@ -3330,13 +3330,343 @@ The list of REST operations to be defined are below:
 
 User Inactivation involves to take specific actions on his/her data and permissions, so user removal won't be implemented, because it implies to change business rules from Microweb. Image removal has the same kind of constraints, so any deletion operation won't be implemented in this sample.
 
-All the operations above already have the suitable business calls to be called, so we need to implement only the controllers.
+All the operations above already have the suitable business calls to be called, so we only need to implement the controllers.
 
-Listing operations should enable some kind of search query. To do so, you can use what you already learned about Microweb and use some query language as [GraphQL](https://graphql.org/) or [FIQL](https://tools.ietf.org/html/draft-nottingham-atompub-fiql-00) to implement such searches. Both languages have tools which support conversion from them to SQL, so to teach how to implement such queries is beyond the scope of this tutorial. Furthermore, Microweb has its own small query language, from class `com.ultraschemer.microweb.persistence.search.Searcher`. A small tutorial about this class can be written later.
+Listing operations should enable some kind of search query. To do so, you can use what you already learned about Microweb and use some query language as [GraphQL](https://graphql.org/) or [FIQL](https://tools.ietf.org/html/draft-nottingham-atompub-fiql-00) to implement such searches. Both languages have tools which support conversion from them to SQL, so to teach how to implement these queries is beyond the scope of this tutorial. Furthermore, Microweb has its own small query language, from class `com.ultraschemer.microweb.persistence.search.Searcher` (___TODO:___ _document all microweb classes using Javadoc_).
 
-__TODO: continue from here__
+We register all defined API calls in the class `App`, as show below:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
+```java
+    @Override
+    public void initialization() throws Exception {
+        // 3. Verify the default user and the default role:
+        UserManagement.initializeRoot();
+
+        // 4. Initialize additional roles (if not using KeyCloak):
+        RoleManagement.initializeDefault();
+
+        // This is added to serve static files to project - All static files are
+        // to be stored at src/main/java/resources/webroot directory, which will be
+        // packed with the application Jar file
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // 5. Register authorization filter:
+        registerFilter(new AuthorizationFilter());
+
+        // 6. Register controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+
+        // Controllers used to manage User Login:
+        // L.1: Login default presentation:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        // L.2: Login submission handling:
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+
+        registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+
+        // Image manipulation:
+        registerController(HttpMethod.POST, "/v0/gui-image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/gui-image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/gui-image", new GuiImageCreationController());
+
+        // User management:
+        registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
+        registerController(HttpMethod.POST, "/v0/gui-user/:id/role", new GuiAssignRoleController());
+        registerController(HttpMethod.POST, "/v0/gui-user", new GuiCreateUserController());
+
+        // REST API calls:
+        registerController(HttpMethod.POST, "/v0/user", new UserCreationController());
+        registerController(HttpMethod.GET, "/v0/user", new UserController());
+        registerController(HttpMethod.GET, "/v0/user/:userIdOrName", new OtherUsersController());
+        registerController(HttpMethod.PATCH, "/v0/user/:id/password", new UserPasswordUpdateController());
+        registerController(HttpMethod.POST, "/v0/image", new ImageCreateController());
+        registerController(HttpMethod.PUT, "/b0/image/:id/link", new ImageUserLinkController());
+
+        // L.3:  Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+    }    
+```
+
+There are some predefined controllers on Microweb, which are present at `com.ultraschemer.microweb.controller` package, that can be reused. Just read their code, and take them as examples for Controller implementation, or just link them to some REST route you think convenient.
+
+Since we're reusing already implemented User Management controllers, all of them suitable for REST calls, the new implemented controllers are only for Image management, below:
+
+__File__ `src/main/java/microweb/sample/controller/ImageCreateController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.validation.Validator;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.controller.bean.ImageCreationData;
+import microweb.sample.controller.error.ImageCreationException;
+import microweb.sample.domain.ImageManagement;
+import microweb.sample.domain.bean.ImageRegistrationData;
+
+import javax.xml.bind.ValidationException;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.Base64;
+import java.util.UUID;
+
+@SuppressWarnings("ResultOfMethodCallIgnored")
+public class ImageCreateController extends SimpleController {
+    public ImageCreateController() {
+        super(500, "cb989df8-acf1-46a5-bf9b-75879ebb4abe");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        new Thread(() -> {
+            asyncEvaluation(500, "d0b8fdc8-4614-4122-ac50-c779108baec7", context, () -> {
+                ImageCreationData imageCreationData = Json.decodeValue(context.getBodyAsString(), ImageCreationData.class);
+                Validator.ensure(imageCreationData);
+
+                if(!imageCreationData.getName().toLowerCase().matches("^.*\\.(jpg|jpeg|png|bmp|tiff|svg|ico|gif|webp)$")) {
+                    throw new ValidationException("Unexpected format for an image. Use files with these extensions: jpg, jpeg, png, bmp, tiff, svg, ico, gif or webp.");
+                }
+
+                File dir = new File("file-uploads");
+
+                if(!dir.exists()) {
+                    dir.mkdir();
+                }
+
+                File f = new File("file-uploads" + File.separator + UUID.randomUUID().toString());
+
+                if(f.createNewFile()) {
+                    try (FileOutputStream fOut = new FileOutputStream(f)) {
+                        fOut.write(Base64.getDecoder().decode(imageCreationData.getBase64FileRepresentation()));
+                        fOut.flush();
+                    } catch(Exception e) {
+                        // Remove processed file:
+                        f.delete();
+                        throw e;
+                    }
+
+                    // Create the business rule class, injecting the structural dependencies (Hibernate and Vertx):
+                    ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+
+                    // Create the input bean:
+                    User u = context.get("user");
+                    ImageRegistrationData imageRegistrationData = new ImageRegistrationData();
+                    imageRegistrationData.setUserId(u.getId());
+                    imageRegistrationData.setImageFileName(f.getAbsolutePath());
+                    imageRegistrationData.setName(imageCreationData.getName());
+
+                    // Save file:
+                    imageManagement.save(imageRegistrationData, (UUID uuid, StandardException e) -> {
+                        // Process results using default method asyncEvaluation, which treats any error
+                        // and ensures HTTP evaluation finalization:
+                        asyncEvaluation(500, "d7056121-3bf2-4f72-92f4-7b0435954572", context, () -> {
+                            // Removed processed file:
+                            f.delete();
+
+                            // Raises exception, in the case of error - Microweb will deal with it suitably:
+                            if (e != null) {
+                                throw e;
+                            }
+
+                            JsonObject res = new JsonObject();
+                            res.put("id", uuid.toString());
+                            response.putHeader("Content-type", "application/json")
+                                    .setStatusCode(200)
+                                    .end(res.encode());
+                        });
+                    });
+                } else {
+                    throw new ImageCreationException("Unable to create and persist image file.");
+                }
+            });
+        }).start();
+    }
+}
+```
+
+__File__ `src/main/java/microweb/sample/controller/ImageUserLinkController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.validation.Validator;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.controller.bean.ImageUserLinkData;
+import microweb.sample.domain.ImageManagement;
+
+public class ImageUserLinkController extends SimpleController {
+    public ImageUserLinkController() {
+        super(500, "c57ff7a7-a255-4bf9-b6e3-dd923f2bffa9");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        ImageUserLinkData linkData = Json.decodeValue(context.getBodyAsString(), ImageUserLinkData.class);
+        Validator.ensure(linkData);
+
+        ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+        imageManagement.linkToUser(context.get("user"), linkData.getImageId(), linkData.getUserId(), linkData.getAlias());
+
+        response.setStatusCode(204).end();
+    }
+}
+```
+
+The necessary data beans:
+
+__File__ `src/main/java/microweb/sample/controller/bean/ImageCreationData.java`:
+```java
+package microweb.sample.controller.bean;
+
+import net.sf.oval.constraint.NotEmpty;
+import net.sf.oval.constraint.NotNull;
+
+import java.io.Serializable;
+
+public class ImageCreationData implements Serializable {
+    @NotNull
+    @NotEmpty
+    String base64FileRepresentation;
+
+    @NotNull
+    @NotEmpty
+    String name;
+
+    public String getBase64FileRepresentation() {
+        return base64FileRepresentation;
+    }
+
+    public void setBase64FileRepresentation(String base64FileRepresentation) {
+        this.base64FileRepresentation = base64FileRepresentation;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+}
+
+```
+
+__File__ `src/main/java/microweb/sample/controller/bean/ImageUserLinkData.java`:
+```java
+package microweb.sample.controller.bean;
+
+import net.sf.oval.constraint.NotEmpty;
+import net.sf.oval.constraint.NotNull;
+
+import java.io.Serializable;
+import java.util.UUID;
+
+public class ImageUserLinkData implements Serializable {
+    @NotNull
+    UUID userId;
+
+    @NotNull
+    UUID imageId;
+
+    @NotNull
+    @NotEmpty
+    String alias;
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
+    }
+
+    public UUID getImageId() {
+        return imageId;
+    }
+
+    public void setImageId(UUID imageId) {
+        this.imageId = imageId;
+    }
+
+    public String getAlias() {
+        return alias;
+    }
+
+    public void setAlias(String alias) {
+        this.alias = alias;
+    }
+}
+
+```
+
+And a new exception:
+
+__File__ `src/main/java/microweb/sample/controller/error/ImageCreationException.java`:
+```java
+package microweb.sample.controller.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class ImageCreationException extends StandardException {
+    public ImageCreationException(String message) {
+        super("1dc95621-f346-4914-98a9-9a29b9b2d054", 500, message);
+    }
+}
+
+```
+
+It can be seen that in the API above, no Image Listing REST route exists. To create a full REST representation of Image objects, this route must exist. To implement this route is let as an exercise to the reader.
+
+At this point we have a full implementation of a MVC web application, with REST API, developed using Microweb. This is the most basic use case of this technology. From now, we go to the specific use cases.
 
 #### 5.1.6.5. A simple customised resource permission control
+
+Basic implementation of MVC web application is interesting, using Microweb, but no new contribution over existent MVC libraries exist. Further, an application as constructed above is useless, since it's a multiuser application, with no role enforcing and no permission control.
+
+To enforce roles and implement permission control in Microweb is fairly simple, even if we're not using KeyCloak/OpenId integrations. To make such implementation, we'll create a Filter, and register it after the AuthorizationFilter and before all other controllers.
+
+This filter will just evaluate the resource paths of each call, and, in according to the logged user role, release the route processing, or just return a __403 Forbidden__ message return.
+
+All responses will be in JSON format. General returning format can be implemented extending the `SimpleController` class, and this will be shown only after all major features of Microweb been presented.
+
+The permission filter registration is implemented like this:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
+```java
+        // ...
+        // ...
+
+        // 5. Register authorization filter:
+        registerFilter(new AuthorizationFilter());
+
+        // Register permission filter here:
+        registerFilter(new PermissionControlFilter());
+
+        // 6. Register controllers:
+        registerController(HttpMethod.POST, "/v0/login", new LoginController());
+        registerController(HttpMethod.GET, "/v0/logoff", new LogoffController());
+
+        // ...
+        // ...
+```
+
+And this is the implementation of permission filter:
+
+__File__ `src/main/java/microweb/sample/controller/PermissionControlFilter.java`:
+```java
+// TODO
+```
 
 __TODO__
 
