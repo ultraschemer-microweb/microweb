@@ -3786,7 +3786,7 @@ Microweb, being a platform for development of Microservices, has chosen to use t
 
 Obviously, if you use KeyCloak as a service alongside Microweb, the Microweb memory limit of 60MB for the entire stack won't apply, anymore, since KeyCloak alone requires more computing resources than 60MB of RAM. But, in a clustered environment, these benefits worth the extra costs.
 
-KeyCloak is [Open Source](https://github.com/keycloak/keycloak), with a business permissive license, [very well documented](https://www.keycloak.org/documentation), it supports OpenID and User Federation, and it has lots of more features.
+KeyCloak is [Open Source](https://github.com/keycloak/keycloak), with a business permissive license, it's [very well documented](https://www.keycloak.org/documentation), it supports OpenID and User Federation, and it has lots of more features.
 
 KeyCloak, as is, has strong support to Spring and Java EE, and [lots of technologies](https://www.keycloak.org/docs/latest/securing_apps/#supported-platforms). __But it doesn't support Vert.X__. Moreover, KeyCloak doesn't enforce no particular architecture to secure REST applications in heterogeneous environments. And server side permission control must be implemented with Java Technologies or directly on Apache HTTP Server configuration.
 
@@ -3803,6 +3803,47 @@ The sample presented in this section shows how to create such service architectu
 
 ### 5.2.1. Instantiating KeyCloak and preparing your application to OpenId
 
+To enable OpenID support on the web application, we must instantiate KeyCloak, prepare a suitable realm, and register users and resources.
+
+To follow this section, please, read a tutorial about OpenID Connect, or understand the protocol, reading some documentation about it [here](https://auth0.com/docs/protocols/oidc) and learn about securing your application with KeyCloak [here](https://www.keycloak.org/docs/latest/securing_apps/).
+
+Lots of tutorials about OpenID Connect can be found using Google or on YouTube.
+
+You must understand, also, the basics about KeyCloak use, which documentation can be found [here](https://www.keycloak.org/docs/latest/getting_started/).
+
+OpenID and OpenID Connect are extense topics, and the official information can be found [here](https://openid.net/connect/).
+
+After you inform yourself about OpenID, OpenID Connect and KeyCloak installation and management, create a default installation on your own computer, in any place you want, with any database support you think suitable to you (in this sample we use the default internal KeyCloak database, since nothing more complex than this is needed). Microweb and KeyCloak doesn't share data, they synchronize user information and roles as they're required.
+
+Start KeyCloak on its default port (8080):
+
+```sh
+<KeyCloak installation dir>/keycloak-10.0.1/bin $ ./standalone.sh # On windows run standalone.bat
+
+...
+...
+Lots of output
+...
+...
+
+00:00:00,000 INFO  [org.jboss.as] (Controller Boot Thread) WFLYSRV0025: Keycloak 10.0.1 (WildFly Core 11.1.1.Final) started in 23287ms - Started 591 of 889 services (606 services are lazy, passive or on-demand)
+```
+
+_Obs.: Currently Microweb supports KeyCloak 10.0.1._
+
+If you have a free KeyCloak installation, let's create a default installation, using the default configurations of Microweb. These configurations can be changed in Microweb database, if you choose other root user name, or if your service has different IP addresses than `localhost` (which is, probably, the most common circunstance).
 
 __TODO: Continue from here__
+
+### 5.2.2. Reseting the database
+
+__TODO__
+
+### 5.2.3. Re-creating Login and Logoff calls
+
+__TODO__
+
+### 5.2.4. Adjusting KeyCloak integration on App class
+
+__TODO__
 
