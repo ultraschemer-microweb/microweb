@@ -3760,46 +3760,49 @@ This complete project can be used as base of new Microweb projects, and it's sou
 
 ## 5.2. Simple user manager system, with OpenID support
 
-We have developed a simple Web Application so far. It's multiuser and it has a simple permissioning control. But it's far from a full fledged multiuser system, with complete permissions and resource management, and, yet, locked in a single platform (the Java Platform), and locked to a single type of database (PostgreSQL).
+We have developed a simple Web Application so far. It's multiuser and it has a simple permissioning control. But it's far from a full fledged multiuser system, with complete permissions and resource management. And this Web Application is, yet, locked to a single platform (the Java Platform), and locked to a single type of database (PostgreSQL).
 
-The database problem can easily be addressed, just accepting the User Management and Permissions management will be addressed by Microweb structure, and that business rules will receive connections from other types of databases for anything else. If you already developed a complex system, you'll realize you already have dealt with these constraints before.
+The database problem can easily be addressed, just accepting the User Management and Permissions management will be addressed by Microweb structure on PostgreSQL, and that business rules will receive connections from other types of databases for anything else. If you already developed a complex system, you'll realize you already have dealt with these constraints before. (_other approach is just map Microweb to other database, but let's assume you don't want to implement this_)
 
 The previous project sample (the entire 5.1 section) address the permissions problem with a very simple filter, which is evaluated after the basic authorization filter. So, using Microweb and filters, it's possible to implement a complete Permissions Resource control system.
 
-But, unfortunately, we shouldn't do this.
+But, unfortunately, we shouldn't implement this.
 
 Resource permission and access control is a really complex topic. If you look at this subject at [WhatIs.com](https://searchsecurity.techtarget.com/definition/access-control), [Wikipedia](https://en.wikipedia.org/wiki/Access_control) or at [IDG CSO](https://www.csoonline.com/article/3251714/what-is-access-control-a-key-component-of-data-security.html), you can follow series of hyperlinks, about the topic, going deeper and deeper in the subject. Resource control isn't a subject to be treated by amateurs.
 
-But, luckily, lots of providers of Resource Permission platform exists, from Oracle, to Microsoft, Amazon, Google. Just look up this subject [at Google](https://www.google.com/search?q=access+control+software+service+provider).
+But, luckily, lots of providers of Resource Permission Platforms exist; from Oracle, to Microsoft, to Amazon AWS, to Google. Just take a look up about this subject [here](https://www.google.com/search?q=access+control+software+service+provider).
 
-In the sample provided at Section 5.1, and analysing Microweb database, we can see that Microweb security and access control is based on ___resources___ and ___roles___. Resource and Role based access control is a specific subject in Access Control (see [RBAC, here](https://auth0.com/docs/authorization/concepts/rbac)). And a very complex one. Furthermore, Microweb is built upon a HTTP/REST/Web foundation. It's built to offer a suitable user control for complex scenarios. In such scenarios, the widespread technology for Authentication, Authorization and User Federation is [OpenId](https://openid.net/what-is-openid/). 
+Analysing the sample provided in Section 5.1 and analysing Microweb database, we can see that Microweb security and access control are based on ___resources___ and ___roles___. Resource and Role based access control is a specific subject in Access Control (see [RBAC, here](https://auth0.com/docs/authorization/concepts/rbac)), and a fairly complex one. Furthermore, Microweb is built upon an HTTP/REST/Web foundation. It's built to offer suitable user controls for complex scenarios. In such scenarios, the widespread technology for Authentication, Authorization and User Management is [OpenId](https://openid.net/what-is-openid/).
 
-Then, the challenge is to provide a technology to support standards, like OpenID, offer user, resource and role control, and yet control services and resources in a heterogeneous environment, based on HTTP/REST technologies, in SOA Architecture.
+Then, the challenge is to provide a technology to support standards, like OpenID, to offer user, resource and role control, and yet to control services and resources in a heterogeneous environment, based on HTTP/REST technologies, in SOA Architecture.
 
-Obviously, a Framework to provide all these features should be a huge and complex one.
+Obviously, a framework to provide all these features should be a huge and complex one.
 
-But, fortunately, no.
+But, fortunately, it doesn't.
 
-There are lots of providers of OpenID services, platforms and libraries. Some of them have RBAC features. Then, we just need to choose one to support, and associate Microweb to it. This have been the Microweb choice, and the chosen technology has been [KeyCloak](https://www.keycloak.org/).
+There are lots of providers of OpenID platforms, they being services or libraries. Some of them have RBAC features. Then, we just need to choose one to support, and associate Microweb to it. This has been Microweb choice, and the chosen technology has been [KeyCloak](https://www.keycloak.org/).
 
-Microweb, being a platform for development of Microservices, have chosen to use the entire KeyCloak stack as a loosely coupled service on runtime.
+Microweb, being a platform for development of Microservices, has chosen to use the entire KeyCloak stack as a loosely coupled service on runtime.
 
-Obviously, if you use KeyCloak as a service alongside Microweb, the Microweb memory limit of 60MB for the entire stack won't apply, anymore, since KeyCloak alone requires more computing resources than this. But, in a clustered environment, these benefits worth the extra costs.
+Obviously, if you use KeyCloak as a service alongside Microweb, the Microweb memory limit of 60MB for the entire stack won't apply, anymore, since KeyCloak alone requires more computing resources than 60MB of RAM. But, in a clustered environment, these benefits worth the extra costs.
 
-KeyCloak is [Open Source](https://github.com/keycloak/keycloak), with a business permissive license, [very well documented](https://www.keycloak.org/documentation), supports OpenID and User Federation, and it has lots of more features.
+KeyCloak is [Open Source](https://github.com/keycloak/keycloak), with a business permissive license, [very well documented](https://www.keycloak.org/documentation), it supports OpenID and User Federation, and it has lots of more features.
 
 KeyCloak, as is, has strong support to Spring and Java EE, and [lots of technologies](https://www.keycloak.org/docs/latest/securing_apps/#supported-platforms). __But it doesn't support Vert.X__. Moreover, KeyCloak doesn't enforce no particular architecture to secure REST applications in heterogeneous environments. And server side permission control must be implemented with Java Technologies or directly on Apache HTTP Server configuration.
 
-Microweb main idea is to provide customizeable KeyCloak user and resource management services, on HTTP/Rest Services, on heterogenous environments, following an architecture followed by this figure:
+Microweb main idea is to provide customizeable KeyCloak user and resource management services, on HTTP/Rest Services, on heterogenous environments, following the architecture presented in this figure:
 
 ![Heterogenous-Architecture](Microweb-Proposed-Architecture.png)
 
 Microweb+Keycloak suit you if:
-* You want to follow the architecture presented in the figure above to create a heterogenous environment, and leverage services developed using multiple programming languages and platforms, using resource management and user control offered by KeyCloak. 
+* You want to follow the architecture presented in the figure above to create a heterogenous SOA enabled environment, and leverage services developed using multiple programming languages and platforms, using resource management and user control offered by KeyCloak. 
 * You want to use Vert.X on your Java Backend Services using KeyCloak resource control services too.
 * You have lots of non-Java code, which can be offered as REST services, to users of your system, under KeyCloak user, resources and permissions control.
 
-The sample presented now show how to create a service architecture which attend all three points above.
+The sample presented in this section shows how to create such service architecture to attend all three points above. Let's start from the sample we created before, changing it to support OpenID, and loading external services with two different approachs, to show how to use Microweb as a proxy to HTTP and REST services developed in other technologies than Java, or Microweb itself.
+
+### 5.2.1. Instantiating KeyCloak and preparing your application to OpenId
+
 
 __TODO: Continue from here__
 
