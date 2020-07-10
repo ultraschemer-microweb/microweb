@@ -3665,10 +3665,98 @@ And this is the implementation of permission filter:
 
 __File__ `src/main/java/microweb/sample/controller/PermissionControlFilter.java`:
 ```java
-// TODO
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.PermissionManagement;
+
+public class PermissionControlFilter extends SimpleController {
+    public PermissionControlFilter() {
+        super(500, "dfa4afdd-9314-48a4-aa17-30dde0dbeda0");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+        if(PermissionManagement.evaluatePermission(context.get("user"), request.path(), request.method().toString())) {
+            // Continue processing
+            context.next();
+        } else {
+            // Reached a restricted path - which is forbidden.
+            response.setStatusCode(403)
+                    .putHeader("Content-type", "text/html")
+                    .end("<html><body><h1>Forbidden</h1></body></html>");
+        }
+    }
+}
 ```
 
-__TODO__
+And the implementation of Permission business rules:
+
+__File__ `src/main/java/microweb/sample/domain/PermissionManagement.java`:
+```java
+package microweb.sample.domain;
+
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.entity.Role;
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.utils.Resource;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+public class PermissionManagement {
+    /**
+     * Simple permission evaluation. Just verify if the path and method are inside a specific group. If so, return True.
+     * False, otherwise.
+     * @param u The user being evaluated
+     * @param path The path being evaluated
+     * @return True, if the user has permission to access path. False, otherwise.
+     */
+    public static boolean evaluatePermission(User u, String path, String method) {
+        try {
+            // If user is given by controller, than authorization has been evaluated.
+            if(u != null) {
+                // In the case of a valid authorization, it's necessary to evaluate permissions:
+                List<Role> roleList = UserManagement.loadRolesFromUser(u.getId());
+                Set<String> roleSet = roleList.stream().map(Role::getName).collect(Collectors.toSet());
+                Set<String> restrictRoleSet = new HashSet<>();
+                restrictRoleSet.add("root");
+                restrictRoleSet.add("user-manager");
+                roleSet.retainAll(restrictRoleSet);
+
+                if (roleSet.size() > 0) {
+                    // All routes are permitted
+                    return true;
+                }
+
+                // Block all restricted paths:
+                return  !Resource.resourceIsEquivalentToPath("GET /v0/gui-user-management#", path, method) &&
+                        !Resource.resourceIsEquivalentToPath("POST /v0/gui-user/:id/role#", path, method) &&
+                        !Resource.resourceIsEquivalentToPath("POST /v0/gui-user#", path, method) &&
+                        !Resource.resourceIsEquivalentToPath("POST /v0/user#", path, method) &&
+                        !Resource.resourceIsEquivalentToPath("GET /v0/user/:userIdOrName#", path, method);
+            } else {
+                // Any route without required authorization is automatically permitted:
+                return true;
+            }
+        } catch(Exception e) {
+            return false;
+        }
+    }
+}
+```
+
+Now, we have a very simple multiuser image sharing system, with a simple permission control, and a simple REST API. It can be seen that `PermissionManagement` business class uses some utilitis from Microweb to evaluate resources. These functions are used internally by Microweb to evaluate resource control, but here are used only to evaluate path/URI equivalence, permitting to implement a simple permission control.
+
+With this filter implemented, all main features of Microweb, regarding MVC applications implementation is finished. Now, it's time to present the most relevant features of this framework - it's KeyCloak integration, and how to use Microweb in a heterogeneous network of REST/SOA microservices.
+
+This complete project can be used as base of new Microweb projects, and it's source code can be [found here](https://github.com/ultraschemer/microweb-sample).
 
 ## 5.2. Simple user manager system, with OpenID support
 
