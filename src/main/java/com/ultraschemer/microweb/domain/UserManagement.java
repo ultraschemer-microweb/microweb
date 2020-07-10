@@ -23,13 +23,12 @@ import java.util.List;
 import java.util.UUID;
 
 public class UserManagement {
-    private static List<Role> loadRolesFromUser(UUID userId) throws UnableToGetRolesFromUser {
+    public static List<Role> loadRolesFromUser(UUID userId) throws UnableToGetRolesFromUser {
         List<Role> roles;
 
         try (Session session = EntityUtil.openTransactionSession()) {
             // Load, then, the roles the user assumes (Obs.: joins are avoided to reduce database query locking):
-            @SuppressWarnings("unchecked")
-            List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId")
+            List<User_Role> userRoles = session.createQuery("from User_Role where userId = :userId", User_Role.class)
                     .setParameter("userId", userId)
                     .list();
 
@@ -315,7 +314,7 @@ public class UserManagement {
             session.getTransaction().commit();
         } catch(PersistenceException pe) {
             throw new UpdateUserAliasException("Unable to update name to user: " + pe.getLocalizedMessage());
-    }
+        }
     }
 
     public static List<UserData> loadUsers(int count, int offset) throws StandardException {
