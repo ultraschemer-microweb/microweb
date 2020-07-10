@@ -2064,7 +2064,7 @@ Now a complete cycle of login and logoff can be performed in this simple system.
 So far, we learned how to create system database, Entity mapping, define Views and Controllers, and define end-points for REST Routes. But nothing about how to define business rules have been told. This section is to close such gap.
 
 If we return to the project scope (Section __5.1.1. Project Objectives and Technical Requirements__), it's told, there:
-> Each user can store text documents and images on his/her accounts.
+> Each user can store images on his/her accounts.
 So, let's implement such feature in the system, to give an example of how a Business Rule should be implemented in Microweb.
 
 It has been told, too, Microweb doesn't enforce __fat__ or __thin__ controllers, nor __fat__ or __thin__ models. The only advice to be given when implementing business rules is to isolate them in its own package, and this package must be __completely independent__ from Microweb archiecture and structure. If this package will be called model, business, controller or anything else is outside the scope of Microweb and this tutorial.
