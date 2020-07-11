@@ -3399,26 +3399,17 @@ __File__ `src/main/java/microweb/sample/controller/ImageCreateController.java`:
 package microweb.sample.controller;
 
 import com.ultraschemer.microweb.entity.User;
-import com.ultraschemer.microweb.error.StandardException;
 import com.ultraschemer.microweb.persistence.EntityUtil;
 import com.ultraschemer.microweb.validation.Validator;
 import com.ultraschemer.microweb.vertx.SimpleController;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 import microweb.sample.controller.bean.ImageCreationData;
-import microweb.sample.controller.error.ImageCreationException;
 import microweb.sample.domain.ImageManagement;
-import microweb.sample.domain.bean.ImageRegistrationData;
 
 import javax.xml.bind.ValidationException;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.Base64;
-import java.util.UUID;
 
-@SuppressWarnings("ResultOfMethodCallIgnored")
 public class ImageCreateController extends SimpleController {
     public ImageCreateController() {
         super(500, "cb989df8-acf1-46a5-bf9b-75879ebb4abe");
@@ -3435,57 +3426,13 @@ public class ImageCreateController extends SimpleController {
                     throw new ValidationException("Unexpected format for an image. Use files with these extensions: jpg, jpeg, png, bmp, tiff, svg, ico, gif or webp.");
                 }
 
-                File dir = new File("file-uploads");
-
-                if(!dir.exists()) {
-                    dir.mkdir();
-                }
-
-                File f = new File("file-uploads" + File.separator + UUID.randomUUID().toString());
-
-                if(f.createNewFile()) {
-                    try (FileOutputStream fOut = new FileOutputStream(f)) {
-                        fOut.write(Base64.getDecoder().decode(imageCreationData.getBase64FileRepresentation()));
-                        fOut.flush();
-                    } catch(Exception e) {
-                        // Remove processed file:
-                        f.delete();
-                        throw e;
-                    }
-
                     // Create the business rule class, injecting the structural dependencies (Hibernate and Vertx):
-                    ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
+                ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), context.vertx());
 
-                    // Create the input bean:
-                    User u = context.get("user");
-                    ImageRegistrationData imageRegistrationData = new ImageRegistrationData();
-                    imageRegistrationData.setUserId(u.getId());
-                    imageRegistrationData.setImageFileName(f.getAbsolutePath());
-                    imageRegistrationData.setName(imageCreationData.getName());
-
-                    // Save file:
-                    imageManagement.save(imageRegistrationData, (UUID uuid, StandardException e) -> {
-                        // Process results using default method asyncEvaluation, which treats any error
-                        // and ensures HTTP evaluation finalization:
-                        asyncEvaluation(500, "d7056121-3bf2-4f72-92f4-7b0435954572", context, () -> {
-                            // Removed processed file:
-                            f.delete();
-
-                            // Raises exception, in the case of error - Microweb will deal with it suitably:
-                            if (e != null) {
-                                throw e;
-                            }
-
-                            JsonObject res = new JsonObject();
-                            res.put("id", uuid.toString());
-                            response.putHeader("Content-type", "application/json")
-                                    .setStatusCode(200)
-                                    .end(res.encode());
-                        });
-                    });
-                } else {
-                    throw new ImageCreationException("Unable to create and persist image file.");
-                }
+                // Create the input bean:
+                User u = context.get("user");
+                imageManagement.saveBase64ImageRepresentation(imageCreationData.getBase64FileRepresentation(),
+                        imageCreationData.getName(), u.getId());
             });
         }).start();
     }
@@ -3612,18 +3559,39 @@ public class ImageUserLinkData implements Serializable {
 
 And a new exception:
 
-__File__ `src/main/java/microweb/sample/controller/error/ImageCreationException.java`:
+__File__ `src/main/java/microweb/sample/domain/error/ImageManagementSaveBase64RepresentationError.java`:
 ```java
-package microweb.sample.controller.error;
+package microweb.sample.domain.error;
 
 import com.ultraschemer.microweb.error.StandardException;
 
-public class ImageCreationException extends StandardException {
-    public ImageCreationException(String message) {
-        super("1dc95621-f346-4914-98a9-9a29b9b2d054", 500, message);
+public class ImageManagementSaveBase64RepresentationError extends StandardException {
+    public ImageManagementSaveBase64RepresentationError(String message, Throwable cause) {
+        super("ca1b849b-b598-46c9-9e2a-26e7c79ab888", 500, message, cause);
     }
 }
+```
 
+It's necessary, too, to add the next Business Method to class `ImageManagement`:
+
+__File__ `src/main/java/microweb/sample/domain/ImageManagement.java`, method `ImageManagement.saveBase64ImageRepresentation`:
+```java
+    // Save Base64Image representation
+    public void saveBase64ImageRepresentation(String base64contents, String name, UUID userId) throws StandardException {
+        try(Session session = openTransactionSession()) {
+            // A.5: Save image in database
+            Image img = new Image();
+            img.setBase64data(base64contents);
+            img.setName(name);
+            img.setOwnerUserId(userId);
+            session.persist(img);
+
+            // A.6: Commit saved data:
+            session.getTransaction().commit();
+        } catch(Exception e) {
+            throw new ImageManagementSaveBase64RepresentationError("Unable to save image data", e);
+        }
+    }
 ```
 
 It can be seen that in the API above, no Image Listing REST route exists. To create a full REST representation of Image objects, this route must exist. To implement this route is let as an exercise to the reader.
