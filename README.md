@@ -3815,6 +3815,10 @@ OpenID and OpenID Connect are extense topics, and the official information can b
 
 After you inform yourself about OpenID, OpenID Connect and KeyCloak installation and management, create a default installation on your own computer, in any place you want, with any database support you think suitable to you (in this sample we use the default internal KeyCloak database, since nothing more complex than this is needed). Microweb and KeyCloak doesn't share data, they synchronize user information and roles as they're required.
 
+This sample will use only the authentication/authorization services provided by OpenID, so it's very similar to a [OAuth2](https://oauth.net/2/) enabled application. Full use of OpenID is not covered in this tutorial.
+
+#### 5.2.1.1. Enabling a DNS entry for your application
+
 Start KeyCloak on its default port (8080):
 
 ```sh
@@ -3831,7 +3835,95 @@ Lots of output
 
 _Obs.: Currently Microweb supports KeyCloak 10.0.1._
 
-If you have a free KeyCloak installation, let's create a default installation, using the default configurations of Microweb. These configurations can be changed in Microweb database, if you choose other root user name, or if your service has different IP addresses than `localhost` (which is, probably, the most common circunstance).
+Let's assume our services are offered at the DNS entry __www.sample.microweb__, so the application site should be accessible at __http://www.sample.microweb__. We'll use this address to configure our application.
+
+Verify your physical address Ip (from your machine), and assign the address __www.sample.microweb__ to it, in the `/etc/hosts` file of your system (on windows it is `c:\Windows\System32\drivers\etc\hosts`), appending to the current file:
+
+```
+#
+# Previous assigned address above
+#
+000.000.000.000 www.sample.microweb
+```
+
+Where `000.000.000.000` should be the physical Ip address of your machine. Please, do not use the loopback adapter address (127.0.0.1) on this assignment, since it won't represent an accurate example of how to use OpenID.
+
+After this addition, ping the address __www.sample.microweb__ and the address of your machine should answer.
+
+Now, your App address will be __http://www.sample.microweb__.
+
+#### 5.2.1.2. Replacing default Microweb configurations
+
+Let's open the `configuration` table on __microwebsample__ database we previously created, and you'll see:
+
+```sql
+select name, value from configuration;
+
+name                                             |value                                                              |
+-------------------------------------------------|-------------------------------------------------------------------|
+Java backend port                                |48080                                                              |
+backend oauth wellknown                          |http://localhost/auth/realms/<realm>/.well-known/uma2-configuration|
+keycloak master oauth wellknown                  |http://localhost/auth/realms/master/.well-known/uma2-configuration |
+keycloak admin resource                          |http://localhost/auth/admin/realms/<realm>                         |
+keycloak master admin name                       |<admin>                                                            |
+keycloak master admin password                   |<password>                                                         |
+keycloak admin realm                             |<realm>                                                            |
+keycloak client application                      |<client-name>                                                      |
+keycloak client application available permissions|#user,#role                                                        |
+```
+
+We must edit this configuration to reflect what we want to our system. Each configuration is explained in details below:
+
+* __`Java Backend port`:__ This is the application default port. As you could see from previous sample, the application always start at port 48080. This starting service port is configured by this configuration variable.
+* __`backend oauth wellknown`:__ This is where Microweb finds the OpenID endpoints from your KeyCloak installation. Microweb requires a configured Realm on KeyCloak, and this server must be waiting at a specific address. This address must be at the same DNS entry of your application. Let's call the KeyCloak realm the application will use as __microweb__, and the application DNS entry, as it has been told before is equal to __www.sample.microweb__. We'll need a reverse-proxy to make KeyCloak available at this address - and to avoid root-user reserved ports clash, we'll configure in such reverse proxy the port __9080__. So this variable should contain the string: `http://www.sample.microweb:9080/auth/realms/microweb/.well-known/uma2-configuration`.
+* __`keycloak master oauth wellknown`:__ This variable should point to web path of KeyCloak master application. Just change it to point to __www.sample.microweb__, port __9080__. So this variable should contain the string: `http://www.sample.microweb:9080/auth/realms/master/.well-known/uma2-configuration`.
+* __`keycloak admin resource`:__ This is the REST address used by Microweb to manage users, permissions and resources on KeyCloak. Just adjust the realm and the address, changing this variable to `http://www.sample.microweb:9080/auth/admin/realms/microweb`
+* __`keycloak master admin name`:__ The root admin name, of the Master Realm. We'll create a user called `microwebadmin` to perform this role. You can set here the user name of the root user, of your KeyCloak installation __master__ realm.
+* __`keycloak master admin password`:__ This is the password of the user presented in the variable above. Just assign `microwebpassword` string value to it.
+* __`keycloak admin realm`:__ This is the realm where your application is registered. Assign the value `microweb` to it.
+* __`keycloak client application`:__ Your application name. To differentiate it from the realm name, use `microwebsampleapp` on it. 
+* __`keycloak client application available permissions`:__ This configuration is used internally by Microweb. Ignore it.
+
+After these modifications, your `configuration` table should contain these values:
+
+```sql
+select name, value from configuration;
+name                                             |value                                                                              |
+-------------------------------------------------|-----------------------------------------------------------------------------------|
+Java backend port                                |48080                                                                              |
+backend oauth wellknown                          |http://www.sample.microweb:9080/auth/realms/microweb/.well-known/uma2-configuration|
+keycloak master oauth wellknown                  |http://www.sample.microweb:9080/auth/realms/master/.well-known/uma2-configuration  |
+keycloak admin resource                          |http://www.sample.microweb:9080/auth/admin/realms/microweb                         |
+keycloak master admin name                       |microwebadmin                                                                      |
+keycloak master admin password                   |microwebpassword                                                                   |
+keycloak admin realm                             |microweb                                                                           |
+keycloak client application                      |microwebsampleapp                                                                  |
+keycloak client application available permissions|#user,#role                                                                        |
+```
+
+Then we can configure KeyCloak. If you have an already configured KeyCloak installation, just replace the values given above by that correspondent to your installation, and skip the next steps directly to section __5.2.2. Reseting the database__.
+
+#### 5.2.1.3. Configuring the fresh KeyCloak installation
+
+If you're using a fresh new KeyCloak installation, then you must configure such installation to reflect your `configuration` table. If you already have a KeyCloak installation, your `configuration` table that must reflect your KeyCloak data. We're assuming now you're loading a new KeyCloak install.
+
+Since it must be already running, access it from your `localhost` address, and you'll see this screen:
+
+![KeyCloak initial screen](keycloak-initial-screen.png)
+
+In the form asking to create an initial admin user, fill with:
+
+* __Username__: `microwebadmin`
+* __Password__: `microwebpassword`
+* __Password confirmation__: `microwebpassword`
+
+And click the __Create__ button, below the form. After that, you'll see this screen:
+
+![KeyCloak master admin created](keycloak-master-admin-created.png)
+
+Click on __Administration Console__ link, and login with the user __microwebadmin__. You'll be redirected to the __Master__ realm administration screen, and, then, you'll already have your `keycloak master admin user`, `keycloak master admin password`, and the `Master` realm.
+
+Now, we must create a new realm (`microweb`), and, in this real, a new application (`microwebsampleapp`).
 
 __TODO: Continue from here__
 
