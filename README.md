@@ -3923,7 +3923,7 @@ And click the __Create__ button, below the form. After that, you'll see this scr
 
 Click on __Administration Console__ link, and login with the user __microwebadmin__. You'll be redirected to the __Master__ realm administration screen, and, then, you'll already have your `keycloak master admin user`, `keycloak master admin password`, and the `Master` realm.
 
-Now, we must create a new realm (`microweb`), and, in this real, a new application (`microwebsampleapp`).
+Now, we must create a new realm (`microweb`), and, in this realm, a new application (`microwebsampleapp`).
 
 __TODO: Continue from here__
 
