@@ -48,7 +48,7 @@ public class Searcher<T> {
      * @param parameterConversions The conversion map used to change parameter variable names.
      * @param query The string query per se.
      *        query ::= q=&lt;block&gt; [ ; &lt;block&gt; ...]
-     *        &lt;block&gt; ::= &lt;param&gt;:&lt;criterion&gt;:&lt;type&gt;:&lt;value&gt | :OR: | :AND:
+     *        &lt;block&gt; ::= &lt;param&gt;:&lt;criterion&gt;:&lt;type&gt;:&lt;value&gt; | :OR: | :AND:
      *        &lt;param&gt; ::= STR
      *        &lt;criterion&gt; ::= equals | starts | finishes | lt | gt |
      *        ltequals | gtequals | contains | in
