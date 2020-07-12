@@ -3893,6 +3893,123 @@ Click on __Administration Console__ link, and login with the user __microwebadmi
 
 Now, we must create a new realm (`microweb`), and, in this realm, a new application (`microwebsampleapp`).
 
+Chose the __Add realm__ button, below the __Master__ realm name in the left-bar:
+
+![Calling Add Realm](calling-add-realm.png)
+
+Then, create the `microweb` realm, already enabled:
+
+![Adding realm form](adding-realm-form.png)
+
+Then, in the new created realm, let's add a new client.
+
+> In KeyCloak _jargon_ (and I think in Oauth2 and OpenID jargon, as well), an application is called __client__, then, our `microwebsampleapp` application, on KeyCloak managemente console, will be a client.
+
+![Calling client creation form](calling-client-create.png)
+
+Which redirects to:
+
+![]()
+
+In the form above, just fill __Client ID__ field with `microwebsampleapp`, entirely lowercase, and click __Save__. Ignore the __Root URL__ field at the moment. Be sure you're creating the application in the `microweb` realm. Maintain the client protocol as openid-connect (_Obs.: Microweb doesn't support SAML_).
+
+
+![Creating microweb sample application client](creating-microwebsampleapp-client.png)
+
+You'll redirected to the next form, with the new application settings:
+
+![Microweb Sample App Settings](microweb-sample-app-settings.png)
+
+In this form, set:
+
+* __Name__: `Microweb Sample App`
+* __Description:__: `Application Sample for Microweb Framework`
+* __Enabled__: __On__
+* __Consent Required__: __On__. This option will force all users to be `logged` and `identified` users, since `microwebsampleapp` is an external application to KeyCloak, and KeyCloak is requiring users to consent to `microwebsampleapp` access actively.
+* __Client Protocol__:  __openid-connect__
+* __Access type__: __confidential__. Very important configuration - it'll force active user authentication on our Microweb Sample application.
+* __Standard Flow Enabled__: __On__
+* __Direct Access Grants Enabled__: __On__
+* __Services Accounts Enabled__: __On__
+* __Authorization Enabled__: __On__. This option is specially relevant, because without it, no Resource Permission Control is possible.
+* __Valid Redirect URIs__: `http://www.sample.microweb:9080/v0/*`. This setting is really important, becauseit says any HTTP address prepended by the given string will be accepted as an authentication redirection. Reading about OpenID and [OAuth2](https://oauth.net/2/) specifications provide more information. 
+
+You can maintain all other options as default.
+
+If you followed all steps correctly, you'll see a tab called __Authorization__ on Microwebsampleapp settings page:
+
+![Microweb Sample App authorization tab](microwebsampleapp-authorization-tab.png)
+
+This __authorization__ tab is the most relevant for Permissions control, and Microweb requires a specific use of the resources managed under this tab.
+
+Click on it and you'll see the __Authorization Settings__ page. Just let it with defaults, and click on __Resources__ tab:
+
+![Microweb Sample App calling resource management](microwebsampleapp-authorization-tab.png)
+
+You'll see the __Resources management page__:
+
+![Microweb Sampe App resources management page](microwebsampleapp-resources-management-page.png)
+
+Before continue, we must understand how Microweb deals with resources, otherwise, this section will be completely senseless.
+
+#### 5.2.1.4. Microweb permission control abstractions
+
+One characteristic of OpenID authorization is that when a user is validated, the Authorization system returns to him/her a list of resources he/she has authorized access. Using this feature, Microweb evaluate any REST/Http Call on it, and evaluate the permission.
+
+This approach has some big disadvantages (which I didn't know, yet, how to deal with):
+
+* Every REST Call on Microweb represents an Authorization Call on KeyCloak, which represents a strong performance penalty.
+* Since OpenID authorization, by default, returns only the list of names of authorized resources, resorce naming must be strictly defined, to be useful.
+* Resource features like "URI", under these circunstances become redundant.
+
+But, it also has some advantages:
+
+* Resource configuration and management can be made directly on KeyCloak, on runtime, with imediate results.
+* No conflict between different resource management uses is enforced.
+* Complex permission and resource control provided by KeyCloak is readily available as a Microweb feature.
+
+Then, we realized that the benefits given are far beyond the penalties imposed, and these penalties, in the future, can be solved, with some architectural evolution of Microweb.
+
+Microweb has the next approach on resource management, when KeyCloak is involved:
+
+* If the resource is not registered on KeyCloak, then it's automatically forbidden.
+* The resource name must follow specific criteria to be considered registered.
+* If the criteria has been fulfilled, then permission evaluation is performed.
+* Permission returned by KeyCloak is considered final.
+
+Microweb doesn't perform resource name conflict resolution, and if one given resource matches more than one resource name, no conflict resolution is made, and the first resource evaluated will be considered the only one. __So, never create two conflicting resource names, because Microweb will consider correct the first name matching the real resource and all other names will be ignored. Since OpenID authorization calls return the _allowed_ resources to the calling user, in the case of naming conflict, if one, and only one of these resources has an _allowed_ permission, then the resource will be considered allowed to that user, no matter how many _forbiddens_ that resource has to that user, but matching other names__. No solution for this problem is planned, because no `cascading permission control` have been planned for Microweb.
+
+From the points above, we can conclude Microweb uses the __resource name__ to evaluate it's registration on KeyCloak, and then, to evaluate its permission.
+
+Microweb only consider URI paths, and Methods to evaluate resources. So, for Microweb, resources are:
+
+* A full route endpoint, composed by a Method name (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), and a URI path, without the query string. In this case, all paths must be finished by a __sharp signal (`#`)__. So, `GET /v0/user#` is an example of a resource).
+* A URI path, identified by a Regular Expression. So, `^\/v0\/user.*$` is an example of resource, different from `\/user\/v[123]management`, which is another resource.
+
+All these resorces are evaluated on HTTP Request calls. So, if a Microweb Microservice receives this request:
+
+```
+POST /v0/user
+Content-Type: application/json
+Entity-Body:
+{
+    name: 'paul',
+    password: 'abc123'
+}
+```
+
+And a resource is registered on KeyCloak with `POST /v0/user#` as name, then that route resource is considered registered. The same if a resource with `^.*\/user$` as a name exists. If both exists, then we have a resource name clash, and Microweb has no way to deal with it. If one of the clashed resource names have an _allowed_ permission, than the call will be considered _allowed_ to that user.
+
+A resource with `POST /v0/users` as a name, will be treated as a regular expression, and since no route will match this resource, it will means nothing and will be completely ignored by Microweb.
+
+Again, __never create two resources with conflicting names__, because Microweb doesn't make naming conflicting resolution, and this feature is not expected to be implemented __at all__. If two permissions with conflicting names exist, one giving user permission, and another forbidding it, __Microweb will consider the allowing permission, ignoring the forbidding permission__.
+
+Given this explanation, let's create the necessary resources to our sample application.
+
+#### 5.1.2.5. Naming the application resources
+
+
+
 __TODO: Continue from here__
 
 ### 5.2.2. Reseting the database
