@@ -3958,13 +3958,13 @@ One characteristic of OpenID authorization is that when a user is validated, the
 
 This approach has some big disadvantages (which I didn't know, yet, how to deal with):
 
-* Every REST Call on Microweb represents an Authorization Call on KeyCloak, which represents a strong performance penalty.
+* Every REST Call on Microweb represents an Authorization Call on KeyCloak, which represents performance penalty. I didn't evaluated how strong is this penalty.
 * Since OpenID authorization, by default, returns only the list of names of authorized resources, resorce naming must be strictly defined, to be useful.
-* Resource features like "URI", under these circunstances become redundant.
+* Resource additional features provided by KeyCloak, like the "URI" resource field, under these circunstances become redundant.
 
 But, it also has some advantages:
 
-* Resource configuration and management can be made directly on KeyCloak, on runtime, with imediate results.
+* Resource configuration and management can be made directly on KeyCloak, on runtime, with __imediate__ results.
 * No conflict between different resource management uses is enforced.
 * Complex permission and resource control provided by KeyCloak is readily available as a Microweb feature.
 
@@ -3977,11 +3977,11 @@ Microweb has the next approach on resource management, when KeyCloak is involved
 * If the criteria has been fulfilled, then permission evaluation is performed.
 * Permission returned by KeyCloak is considered final.
 
-Microweb doesn't perform resource name conflict resolution, and if one given resource matches more than one resource name, no conflict resolution is made, and the first resource evaluated will be considered the only one. __So, never create two conflicting resource names, because Microweb will consider correct the first name matching the real resource and all other names will be ignored. Since OpenID authorization calls return the _allowed_ resources to the calling user, in the case of naming conflict, if one, and only one of these resources has an _allowed_ permission, then the resource will be considered allowed to that user, no matter how many _forbiddens_ that resource has to that user, but matching other names__. No solution for this problem is planned, because no `cascading permission control` have been planned for Microweb.
+Microweb doesn't perform resource name conflict resolution, and if one given resource matches more than one resource name, no conflict resolution is made, and the first resource evaluated will be considered the only one. __So, never create two conflicting resource names, because Microweb will consider correct the first name matching the real resource and all other names will be ignored. Since OpenID authorization calls return the _allowed_ resources to the calling user, in the case of naming conflict, if one, and only one of these resources has an _allowed_ permission, then the resource will be considered allowed to that user, no matter how many _"forbiddens"_ that resource has to that user, but matching other names__. No solution for this problem is planned, because no `cascading permission control` has been planned for Microweb.
 
-From the points above, we can conclude Microweb uses the __resource name__ to evaluate it's registration on KeyCloak, and then, to evaluate its permission.
+From the points above, we can conclude Microweb uses the __resource name__ to evaluate its registration on KeyCloak, and then, to evaluate its permission.
 
-Microweb only consider URI paths, and Methods to evaluate resources. So, for Microweb, resources are:
+Microweb only consider URI paths and Methods to evaluate resources. So, for Microweb, resources are:
 
 * A full route endpoint, composed by a Method name (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`), and a URI path, without the query string. In this case, all paths must be finished by a __sharp signal (`#`)__. So, `GET /v0/user#` is an example of a resource).
 * A URI path, identified by a Regular Expression. So, `^\/v0\/user.*$` is an example of resource, different from `\/user\/v[123]management`, which is another resource.
@@ -3998,7 +3998,7 @@ Entity-Body:
 }
 ```
 
-And a resource is registered on KeyCloak with `POST /v0/user#` as name, then that route resource is considered registered. The same if a resource with `^.*\/user$` as a name exists. If both exists, then we have a resource name clash, and Microweb has no way to deal with it. If one of the clashed resource names have an _allowed_ permission, than the call will be considered _allowed_ to that user.
+And a resource is registered on KeyCloak with `POST /v0/user#` as name, then that route resource is considered registered. The same if a resource with `^.*\/user$` as a name exists. If both exist, then we have a resource name clash, and Microweb has no way to deal with it. If one of the clashed resource names has an _allowed_ permission, than the call will be considered _allowed_ to that user.
 
 A resource with `POST /v0/users` as a name, will be treated as a regular expression, and since no route will match this resource, it will means nothing and will be completely ignored by Microweb.
 
@@ -4008,7 +4008,49 @@ Given this explanation, let's create the necessary resources to our sample appli
 
 #### 5.1.2.5. Naming the application resources
 
+Considering the resource naming rules presented above, the rule of thumb to naming Microweb resources, under KeyCloak, are:
+1. Create a resource name for each __route__ or __endpoint__ registered in your Microweb Application project.
+2. Create generic resource names using regular expressions only for boundary cases.
 
+When we open the current `microweb.sample.App.initialize` method, we can see all routes registered in the system. Three of the routes (`GET /#`, `GET /v0#`, `POST /v0/login#`) don't need authorization, so we can simply ignore them. All the other need. Let's just list all of them, using Microweb KeyCloak resource naming rules (`METHOD path#`), and saving all of them as resources in KeyCloak:
+
+* `GET /v0/logoff#` 
+* `GET /v0/gui-user-login#` 
+* `POST /v0/gui-user-login#` 
+* `POST /v0/gui-user-logoff#` 
+* `POST /v0/gui-image/:id/assign#` 
+* `POST /v0/gui-image/:id/raw#` 
+* `POST /v0/gui-image#` 
+* `GET /v0/gui-user-management#` 
+* `POST /v0/gui-user/:id/role#` 
+* `POST /v0/gui-user#` 
+* `POST /v0/user#` 
+* `GET /v0/user#` 
+* `GET /v0/user/:userIdOrName#` 
+* `PATCH /v0/user/:id/passowrd#` 
+* `POST /v0/image#` 
+* `PUT /v0/image/:id/link#` 
+
+as can be viewed below:
+
+![Microweb Resource Registration](microwebsampleapp-resource-registration.png)
+
+_Obs.: Save the resource __Name__ and __Display Name__ with the same value, just to maintain this sample simple. For Microweb, just the resource __name__ is important. Other resource features are not used._
+
+As can be viewed in resource names above, resource path parameters are prepended with colons (`:`) both in Microweb (due Vert.X routing naming rules) and in KeyCloak (due Microweb routing names being inherited from Vert.X). 
+
+Hence, both resources are considered equivalent:
+
+* `POST /v0/gui-image/:id/assign#`
+* `POST /v0/gui-image/:imageId/assign#`
+
+And if both names are used, they will clash. So, be careful with path parameters, when registering a resource.
+
+After all resources are registered, we need to assign permissions to them.
+
+KeyCloak uses OpenID conventions to permissioning, and every resource to be permitted need to be associated to __Scopes__, and these scopes are assigned to __Roles__, and such roles, in their turn, are assigned to __Users__. The __Roles__ receive permissions to access certain __Scopes__ and all __Resources__ associated to them. You can understand these relations better reading KeyCloak [documentation](https://www.keycloak.org/docs/latest/authorization_services/). This kind of authorization presented in this tutorial is Role-based (RBAC). Other types of authorization are possible, but to describe them is beyond the scope of this documentation.
+
+So, let's create the scopes we need, and them, assign resources to them.
 
 __TODO: Continue from here__
 
