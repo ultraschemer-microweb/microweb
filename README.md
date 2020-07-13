@@ -3760,6 +3760,7 @@ KeyCloak, as is, has strong support to Spring and Java EE, and [lots of technolo
 
 Microweb main idea is to provide customizeable KeyCloak user and resource management services, on HTTP/Rest Services, on heterogenous environments, following the architecture presented in this figure:
 
+__Figure 1: Microweb OpenId enabled heterogeneous architecture:__
 ![Heterogenous-Architecture](Microweb-Proposed-Architecture.png)
 
 Microweb+Keycloak suit you if:
@@ -3977,7 +3978,7 @@ Microweb has the next approach on resource management, when KeyCloak is involved
 * If the criteria has been fulfilled, then permission evaluation is performed.
 * Permission returned by KeyCloak is considered final.
 
-Microweb doesn't perform resource name conflict resolution, and if one given resource matches more than one resource name, no conflict resolution is made, and the first resource evaluated will be considered the only one. __So, never create two conflicting resource names, because Microweb will consider correct the first name matching the real resource and all other names will be ignored. Since OpenID authorization calls return the _allowed_ resources to the calling user, in the case of naming conflict, if one, and only one of these resources has an _allowed_ permission, then the resource will be considered allowed to that user, no matter how many _"forbiddens"_ that resource has to that user, but matching other names__. No solution for this problem is planned, because no `cascading permission control` has been planned for Microweb.
+Microweb doesn't perform resource name conflict resolution, and if one given resource matches more than one resource name, no conflict resolution is made, and the first resource evaluated will be considered the only one. __So, never create two conflicting resource names, because Microweb will consider correct the first name matching the real resource and all other names will be ignored. Since OpenID authorization calls return the _allowed_ resources to the calling user, in the case of naming conflict, if one, and only one of these resources, has an _allowed_ permission, then the resource will be considered allowed to that user, no matter how many _"forbiddens"_ that resource has to that user on the other registered names__. No solution for this problem is planned, because no __cascading permission control__ has been planned for Microweb.
 
 From the points above, we can conclude Microweb uses the __resource name__ to evaluate its registration on KeyCloak, and then, to evaluate its permission.
 
@@ -4012,11 +4013,9 @@ Considering the resource naming rules presented above, the rule of thumb to nami
 1. Create a resource name for each __route__ or __endpoint__ registered in your Microweb Application project.
 2. Create generic resource names using regular expressions only for boundary cases.
 
-When we open the current `microweb.sample.App.initialize` method, we can see all routes registered in the system. Three of the routes (`GET /#`, `GET /v0#`, `POST /v0/login#`) don't need authorization, so we can simply ignore them. All the other need. Let's just list all of them, using Microweb KeyCloak resource naming rules (`METHOD path#`), and saving all of them as resources in KeyCloak:
+When we open the current `microweb.sample.App.initialize` method, we can see all routes registered in the system. Some of the routes (`GET /#`, `GET /v0#`, `POST /v0/login#`, `GET /v0/gui-user-login`, `POST /v0/gui-user-login`) don't need authorization, so we can simply ignore them. All the other need. Let's just list all of them, using Microweb KeyCloak resource naming rules (`METHOD path#`), and saving all of them as resources in KeyCloak:
 
 * `GET /v0/logoff#` 
-* `GET /v0/gui-user-login#` 
-* `POST /v0/gui-user-login#` 
 * `POST /v0/gui-user-logoff#` 
 * `POST /v0/gui-image/:id/assign#` 
 * `POST /v0/gui-image/:id/raw#` 
@@ -4050,19 +4049,261 @@ After all resources are registered, we need to assign permissions to them.
 
 KeyCloak uses OpenID conventions to permissioning, and every resource to be permitted need to be associated to __Scopes__, and these scopes are assigned to __Roles__, and such roles, in their turn, are assigned to __Users__. The __Roles__ receive permissions to access certain __Scopes__ and all __Resources__ associated to them. You can understand these relations better reading KeyCloak [documentation](https://www.keycloak.org/docs/latest/authorization_services/). This kind of authorization presented in this tutorial is Role-based (RBAC). Other types of authorization are possible, but to describe them is beyond the scope of this documentation.
 
-So, let's create the scopes we need, and them, assign resources to them.
+So, let's create the scopes we need, and then, assign resources to them. On __Microwebsampleapp - Authorization__, select the __Authorization Scopes__ tab, as shown below:
 
-__TODO: Continue from here__
+![Microweb authorization scopes](microwebsample-authorization-scopes.png)
+
+Create four authorization scopes, with the next names:
+
+* `user`
+* `user-manager`
+* `user-api`
+* `user-manager-api`
+
+Now, we need to edit each resource, assigning them to the policies above.
+
+Go back to the list of resources, and assign them to the scopes, using this distribution:
+
+* Scope `user` receives the resources:
+  * `GET /v0/gui-user-logoff#`
+  * `POST /v0/gui-image/:id/assign#`
+  * `GET /v0/gui-image/:id/raw#`
+  * `POST /v0/gui-image#`
+* Scope `user-manager` receives the resources:
+  * `GET /v0/gui-user-management#`
+  * `POST /v0/gui-user/:id/role#`
+  * `POST /v0/gui-user#`
+* Scope `api` receives the resources:
+  * `GET /v0/logoff#`
+  * `GET /v0/user#`
+  * `POST /v0/image#`
+  * `PUT /v0/image/:id/link#`
+  * `PATCH /v0/user/:id/password#`
+* Scope `user-manager-api` receives the resources:
+  * `POST /v0/user#`
+  * `GET /v0/user/:userIdOrName#`
+
+To create Role-Based Access permissions, we need roles. Let's create three:
+
+* The first one is the `user` role.
+* The second one is the `user-admin` role.
+* The third one is the `root` role, which is a combination of the two, above.
+
+Go to the __Microwebsampleapp - Roles__ tab, and add the three roles above:
+
+![Adding role](microwebsampleapp-add-role.png)
+
+In the case of `root` role, it is the combination of `user` and `user-admin` roles:
+
+![Adding root role](microwebsampleapp-adding-root-role.png)
+
+
+Now we can create permissions on these scopes. We'll use __Role-Based Access Control (RBAC)__, which is easily provided by KeyCloak. Just go back to the ___Authorization Scopes__ tab, and create the permissions, based on roles:
+
+![Creating a scope based permission](microwebappsample-scope-based-permission-creation.png)
+
+Create two permissions.
+
+The first one is for default users, with access to `user` and `api` scopes:
+* Name: `user`
+* Description: `User default access`
+* Scopes: `user` and `api`
+* Apply policy: Create a role based policy, granting access to role `user`.
+* Decision Strategy: `Unanimous`.
+
+The other values you can let the default:
+
+![Creating permission](microwebsampleapp-create-permission.png)
+
+The other permission is for an Administrator:
+* Name: `administrator`
+* Description: `User manager permission`
+* Scopes: `user-manager` and `user-manager-api`
+* Apply policy: Create a role based policy, granting access to the role `user-admin`.
+* Decision Strategy: `Unanimous`.
+
+_Obs.: This step is confuse and a may seem a little complicated. This is because KeyCloak implementation of RBAC is not exactly the simplest one. Read KeyCloak documentation to get used to its concepts._
+
+The last step is to create a default user group, granting to all users in this group the role `user`, created above. This will ensure that any new user will have access to the correct application resources.
+
+Go to the Groups management interface, and create a __default__ user group, assigning the role `user` to all of its members:
+
+![Creating group](microwebsampleapp-create-group.png)
+
+Assigning the default role:
+
+![Assigning default role](microwebsampleapp-assign-default-group-role.png)
+
+In theory, all permission configuration has been implemented. Now, it's time to adapt the Microweb Sample App project to support KeyCloak permissions.
 
 ### 5.2.2. Reseting the database
 
-__TODO__
+Now that we configured KeyCloak, we need to cleanup the database, because the simple user management provided by Microweb isn't compatible with KeyCloak user management. We need to clean the entire database.
 
-### 5.2.3. Re-creating Login and Logoff calls
+The best way is simply to downgrade the database, using the __Alembic__ migrations, but this will cleanup the __Configuration__ table, too. If you downgrade the database to base, you'll need to repopulate the __Configuration__ table. If you don't want to do this, just run the SQL script below, which will reset the project entirely:
 
-__TODO__
+```sql
+delete from user_image;
+delete from image;
+delete from access_token;
+delete from user_role;
+delete from role;
+delete from user_;
+```
+
+Since the other tables aren't used, they're irrelevant on this point of project.
 
 ### 5.2.4. Adjusting KeyCloak integration on App class
 
+The way Microweb integrate with KeyCloak is different from the way we used the framework until now. Each controller must be integrated to KeyCloak authorization calls __independently__. Filters aren't used.
+
+The `SimpleController` class has some overridable methods, and a `SimpleController` specification exists, to integrate route authorization to KeyCloak. This specification is called `CentralUserRepositoryAuthorizedController`, and we'll use it to control authorization to each of our controllers. If a controller has no restricted authorization, than we'll maintain them inheriting from `SimpleController`.
+
+The first action we need to perform is to remove all Microweb internal user management calls from `App.initialization` method, as can be seen below:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `App.initialization()`:
+```java
+    @Override
+    public void initialization() throws Exception {
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // Register controllers:
+
+        // User access controllers:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+        registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+
+        // Image manipulation:
+        registerController(HttpMethod.POST, "/v0/gui-image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/gui-image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/gui-image", new GuiImageCreationController());
+
+        // User management:
+        registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
+        registerController(HttpMethod.POST, "/v0/gui-user/:id/role", new GuiAssignRoleController());
+        registerController(HttpMethod.POST, "/v0/gui-user", new GuiCreateUserController());
+
+        // REST API calls:
+        registerController(HttpMethod.POST, "/v0/user", new UserCreationController());
+        registerController(HttpMethod.GET, "/v0/user", new UserController());
+        registerController(HttpMethod.GET, "/v0/user/:userIdOrName", new OtherUsersController());
+        registerController(HttpMethod.PATCH, "/v0/user/:id/password", new UserPasswordUpdateController());
+        registerController(HttpMethod.POST, "/v0/image", new ImageCreateController());
+        registerController(HttpMethod.PUT, "/b0/image/:id/link", new ImageUserLinkController());
+
+        // Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+    }
+```
+
+It can be seen, above, that `AuthorizationFilter` has been removed, as the `PermissionControlFilter`. These class can even be removed from the project. The calls to `UserManagement.initializeRoot()` and to `RoleManagement.initializeDefault()` are removed too. Root user management and role management will be performed by KeyCloak. `Login` and `Logoff` REST controllers have been completely removed. Now, these actions are controlled by KeyCloak.
+
+Now, all controllers which authorization will be performed by KeyCloak must specialize `com.ultraschemer.microweb.vertx.CentralUserRepositoryAuthorizedController`, as the sample below:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLogoffProcessController.java`:
+```java
+package microweb.sample.controller;
+
+// ...
+// Other imports
+//
+import com.ultraschemer.microweb.vertx.CentralUserRepositoryAuthorizedController;
+//
+// Other imports
+// ...
+
+public class GuiUserLogoffProcessController extends CentralUserRepositoryAuthorizedController {
+    // Class internal implementation (it doesn't change)
+    // ...
+    // ...
+}
+```
+
+The controllers which must be changed in this way are listed below, all of them in the package `microweb.sample.controller`:
+
+* `GuiUserLogoffProcessController`
+* `GuiImageAssignController`
+* `GuiCreateUserController`
+* `GuiImageRawDataController`
+* `GuiImageCreationController`
+* `GuiUserManagementController`
+* `GuiAssignRoleController`
+* `GuiCreateUserController`
+* `UserCreationController`
+* `UserController`
+* `OtherUsersController`
+* `UserPasswordUpdateController`
+* `ImageCreateController`
+* `ImageUserLinkController`
+
+After changing the controllers to specialize the `CentralUserRepositoryAuthorizedController` controller class, we realize we don't have, anymore, a way to perform system login.
+
+Login, now, is controlled by KeyCloak. Then we need a mor detailed explanation about how to implement login, and then, how to reimplement logoff.
+
+### 5.2.4. Re-creating Login and Logoff calls
+
+When integrated with KeyCloak, Microweb must follow OpenID rules, and OpenID login process is strictly controlled in what is called __[two factor authentication](https://auth0.com/learn/two-factor-authentication/)__.
+
+The first factor is the `user`. The user must authenticate him/herself, to ensure he/she is who he/she says.
+
+The second factor is the application, the `client`. The application must ensure it is a valid application, and that the user given it permission to access him/her resources and data.
+
+This README is not about __two factor authentication__, so an explanation about it won't be given here, just a sample implementation.
+
+The first detail we must pay attention is that every OpenID client has two important data:
+
+* The Client ID
+* The Client Secret
+
+Client secret must be held by the client application implementation, but it __never can be sent to source code running in the client, it must be held in server side__, to avoid its leakage.
+
+The ClientID is free to be loaded in any place, to identify the client application.
+
+The login form is controlled by KeyCloak, and all user data is exchanged directly by the user and the OpenID provider (in our case, KeyCloak). So, when requesting login, the client application must redirect the user to a KeyCloak controlled login form, and pass to KeyCloak a finish login redirection address. KeyCloak will redirect the user back to the client application, and the client, server side, will authenticate itself on KeyCloak.
+
+_Obs.: This flow can seem difficult. If you're thinking it complex, please, read OpenID documentation and look for some OpenID or OAuth2 tutorial to understand it better._
+
+So, the login link, in the home view, just need to redirect application to KeyCloak, then receiving back the flow, for client authentication.
+
+But, to KeyCloak be completely integrated to Microweb application, and to be reachable to other parts of the sample system, it must be accessible by the application in a safe way. So, let's configure Microweb to access KeyCloak correctly.
+
+#### 5.2.4.1 Exposing KeyCloak as a Microweb Microwervice
+
+Until now, KeyCloak and Microweb Sample App are different and independent systems. Let's integrate them in a single system.
+
+The best way to perform this integration is to use a Reverse Proxy, linking all routes of KeyCloak and Microweb application in a single address. This kind of integration turns all KeyCloak calls and Microweb calls in elements of a single heterogeneous system, as can be seen in the __Figure 1__, above.
+
+This is necessary, again, because DNS entries and IP address are __limited resources__, and there is __[CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)__, which restrict HTTP calls to specific addresses when they're called from a specific source.
+
+_Obs.: __CORS__ can be disabled in production systems, and for public APIs, this can be necessary. But, in almost all other situations, apart public APIs, __CORS__ is one of the most important security measures in distributed systems. Complex and detailed control of __CORS__ is extremely necessary in safe complex systems, and this is a topic beyond this README. As a rule of thumb, maintain all HTTP/REST calls in the same DNS entry or HTTP Address, to permit advanced __CORS__ configuration._
+
+Microweb packs with itself a proxy API, provided by [little proxy](https://github.com/adamfisk/LittleProxy) library. This proxy has been customized to work as a reverse proxy for the HTTP protocol. HTTPS protocol is not available, because Microweb internal proxy is for internal network use. HTTPS support must be provided by external http servers, like [Nginx](http://nginx.org/) or [Apache](http://httpd.apache.org/), over the entire Microweb services you're developing.
+
+As defined in the Microweb Sample App `Configuration` table, the entire application will listen at port __9080__, so we'll configure the internal proxy on this port.
+
+_Obs.: The internal proxy should listen in port __80__. On Windows and Mac OS X, this is simple and direct. But in Linux, only root users' programs can listen at port __80__. To make the entire system to listen in another port doesn't reduce this sample genericity, so it can be developed in Windows, Linux or Mac OS equally._
+
+Change the `App.initialization()` method to:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
+```java
+// TODO: Continue from here
+```
+
+### 5.2.5. Using Microweb as middleware to internal microservices
+
 __TODO__
 
+#### 5.2.5.1. Implementing authorized REST proxies programatically
+
+__TODO__
+
+#### 5.2.5.2. Implementing complete reverse proxies
+
+__TODO__
+
+# 6. Conclusions and Next Steps
+
+__TODO__
