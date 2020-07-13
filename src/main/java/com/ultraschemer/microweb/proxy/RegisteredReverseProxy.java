@@ -94,7 +94,7 @@ public class RegisteredReverseProxy {
                                                     evaluateRequestPermission(request);
                                                 }
                                                 String host = findUriMappedServer(request.getUri());
-                                                request.setUri(host + request.getUri());
+                                                request.setUri("http://" + host + request.getUri());
                                                 request.headers().remove("Host");
                                                 request.headers().add("Host", host);
                                             } catch(StandardException|StandardRuntimeException se) {

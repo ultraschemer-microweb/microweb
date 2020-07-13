@@ -4289,9 +4289,27 @@ Change the `App.initialization()` method to:
 
 __File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
 ```java
-// TODO: Continue from here
+    @Override
+    public void initialization() throws Exception {
+        // ..
+        // Previous code is maintained
+        // ..
+        // ..
+
+        //
+        // Append this to the end of method:
+        //
+        RegisteredReverseProxy proxy = new RegisteredReverseProxy(9080);
+        proxy.registerPath("^\\/auth.*$", "localhost:8080");
+        proxy.registerPath("^\\/v0\\.*", "localhost:48080" );
+        proxy.registerPath("^\\/$", "localhost:48080");
+        proxy.run();
+    }
 ```
 
+The code above will redirect any uri with starting with `/auth` to a server located at localhost, but listening at __8080__ port, which is our instance of KeyCloak. The uri `/`, and any uri starting with `/v0` will be redirected to Microweb sample app, itself.
+
+Just implement it and restart Microweb sample application. The reverse proxy must proceed correctly.
 ### 5.2.5. Using Microweb as middleware to internal microservices
 
 __TODO__
