@@ -1,7 +1,6 @@
 package com.ultraschemer.microweb.proxy;
 
 import com.ultraschemer.microweb.domain.CentralUserRepositoryManagement;
-import com.ultraschemer.microweb.error.StandardException;
 import io.netty.handler.codec.http.DefaultHttpRequest;
 import okhttp3.HttpUrl;
 
