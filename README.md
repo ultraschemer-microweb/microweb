@@ -4851,9 +4851,9 @@ These features are powerful, but they're simple, not needing extense explanation
 
 #### 5.2.5.1. Implementing authorized REST proxies programatically
 
-What if we need a technology we find an implementation in another platform than Java suitable to our needs? It's simple, we just create a REST microservice with that technology, and then register such service in a Microweb application using one of these two Controller classes:
+What if we need a technology we find an implementation in another platform than Java, but yet suitable to our needs? It's simple, we just create a REST microservice with that technology, and then register such service in a Microweb application using one of these two Controller classes:
 
-1. __`SimpleServerProxyController`__: This class is correspondent to the `SimpleController` class, but while SimpleController, when specialized, permit the creation of a Java Controller, `SimpleServerProxyController` redirects any call to it to an external REST server, receiving the same URI, method, EntityBody and Headers from the original call. If a SimpleServerProxyController receives a `GET /abc/def?a=b` call, it will redirect this exact call (the same URI, the same method, the same query-string) to an external service registered in this `simpleServerProxyController` instance. Since this class is correspondent to `SimpleController`, it is not subject to OpenID permission evaluation. 
+1. __`SimpleServerProxyController`__: This class is correspondent to the `SimpleController` class, but while `SimpleController`, when specialized, permit the creation of a Java Controller, `SimpleServerProxyController` redirects any call to it to an external REST server, receiving the same URI, method, EntityBody and Headers from the original call. If a SimpleServerProxyController receives a `GET /abc/def?a=b` call, it will redirect this exact call (the same URI, the same method, the same query-string) to an external service registered in this `simpleServerProxyController` instance. Since this class is correspondent to `SimpleController`, it is not subject to OpenID permission evaluation. 
 2. __`CentralAuthorizedServerProxyController`__: This class is correspondent to the `CentralUserRepositoryAuthorizedController` class, so its calls are subject to OpenID permission evaluation. All other features are exactly equals to that available by `SimpleServerProxyController`.
 
 Both classes are available in the `com.ultraschemer.microweb.proxy` package.
@@ -4866,13 +4866,17 @@ Microweb standard database is PostgreSQL. There is a project called __[PostgREST
 
 __But PostgREST is implemented in Haskell.__
 
-It's no problem to Microweb. Since PostgREST is REST, we can register it as a Microweb microservice, and put it under KeyCloak versioning control, and accessible to any client of Microweb Sample application.
+It's no problem for Microweb. Since PostgREST is REST, we can register it as a Microweb microservice, and put it under KeyCloak versioning control, accessible to any client of Microweb Sample client.
 
-Let's start assuming we just want to provide an Image Search to our users, so we'll configure PostgREST, and expose only one entity search: `image`. It'll be read only, by PostgREST configuration, and restricted to users with `user-manager` permissions. We don't want a user can search images from other users (_Obs.: we can implement a filter to restrict such searches, but this implementation is not objective of this README_).
+Let's start assuming we just want to provide an Image Search to our users, so we'll configure PostgREST, and expose only one entity search: `image`. It'll be read only, by PostgREST configuration, and restricted to users with `user-manager-api` permissions. We don't want a user can search images from other users (_Obs.: we can implement a filter to restrict such searches, but this implementation is not objective of this README_).
 
 ##### 5.2.5.1.1. Installing and configuring PostgREST
 
 __TODO: continue from here__
+
+##### 5.2.5.1.2. Registering PostgREST `image` search as Microweb route
+
+__TODO__
 
 #### 5.2.5.2. Implementing complete reverse proxies
 
