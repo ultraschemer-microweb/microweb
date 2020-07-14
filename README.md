@@ -4065,6 +4065,7 @@ Now, we need to edit each resource, assigning them to the policies above.
 Go back to the list of resources, and assign them to the scopes, using this distribution:
 
 * Scope `user` receives the resources:
+  * `GET /v0/logoff#`
   * `GET /v0/gui-user-logoff#`
   * `POST /v0/gui-image/:id/assign#`
   * `GET /v0/gui-image/:id/raw#`
@@ -4082,6 +4083,8 @@ Go back to the list of resources, and assign them to the scopes, using this dist
 * Scope `user-manager-api` receives the resources:
   * `POST /v0/user#`
   * `GET /v0/user/:userIdOrName#`
+
+You can see, above, that the resource `GET /v0/logoff#` is present in both `user` and `api` scopes. There is no problem if a resource belongs to more than one scope.
 
 To create Role-Based Access permissions, we need roles. Let's create three:
 
@@ -4143,10 +4146,10 @@ Now that we configured KeyCloak, we need to cleanup the database, because the si
 The best way is simply to downgrade the database, using the __Alembic__ migrations, but this will cleanup the __Configuration__ table, too. If you downgrade the database to base, you'll need to repopulate the __Configuration__ table. If you don't want to do this, just run the SQL script below, which will reset the project entirely:
 
 ```sql
-delete from user_image;
+delete from user__image;
 delete from image;
 delete from access_token;
-delete from user_role;
+delete from user__role;
 delete from role;
 delete from user_;
 ```
@@ -4367,7 +4370,460 @@ Some observations must be noted:
 
 Now we need to implement the login finish redirection route. This route will implement the second step for two-factor authentication, validating the application with its secret.
 
-__TODO: continue from here__
+Before implementing this route and necessary business rules, let's create two new configurations. Just add them to the `configuration` table, as show in the SQL script below:
+
+```sql
+insert into configuration (name, value) values ('keycloak client redirect uri', 'http://www.sample.microweb:9080/v0/finish-login');
+insert into configuration (name, value) values ('keycloak client application secret', '<your KeyCloak client secret>');
+insert into configuration (name, value) values ('server backend resource', 'http://www.sample.microweb:9080');
+```
+
+You can find your application secret looking for the `microwebsampleapp` credentials, as show below. Your client authentication option must be __Client Id and Secret__:
+
+![Client Id and Secret](microwebsampleapp-find-secret.png)
+
+Then register the new route at `App` class.
+
+__File__ `/src/main/java/microweb/sample/App.java`, method `App.initialization`:
+```java
+// On imports, add:
+import com.ultraschemer.microweb.controller.FinishConsentController;
+
+    @Override
+    public void initialization() throws Exception {
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // Register controllers:
+
+        // Finish login authentication:
+        registerController(HttpMethod.GET, "/v0/finish-login", new FinishLoginController());
+
+        // Default finish consent call:
+        registerController(HttpMethod.GET, "/v0/finish-consent", new FinishConsentController());
+
+        //
+        // The remainder of the method is maintained as it was before.
+        //
+        // ...
+        // ...
+    }
+```
+
+And implement this controller:
+
+__File__ `/src/main/java/microweb/sample/controller/FinishLoginController.java`:
+```java
+package microweb.sample.controller;
+
+import com.google.common.base.Throwables;
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.PermissionManagement;
+
+public class FinishLoginController extends SimpleController {
+    public FinishLoginController() {
+        super(500, "44154235-fd79-4487-9092-56e9e280e2d5");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+        PermissionManagement.finishLogin(request.getParam("state"),
+                request.getParam("session_state"),
+                request.getParam("code"), (JsonObject res, StandardException se) -> {
+                    try {
+                        // Vert.X has a bug which prevents setting multiple cookies simultaneously, so we create a simple page
+                        // to set the cookies and, then, redirect itself to home page:
+                        response.setStatusCode(200)
+                                .putHeader("Content-type", "text/html")
+                                .end("<html><head>" +
+                                        "<title>Microweb login</title>" +
+                                        "<head>" +
+                                        "<body>Logging in..." +
+                                        "<script language=\"javascript\">" +
+                                        "document.cookie = \"Microweb-Access-Token=" + "" + "; path=/;\";" +
+                                        "document.cookie = \"Microweb-User-Id=" + "" + "; path=/;\";" +
+                                        "document.cookie = \"Microweb-Refresh-Token=" + "" + "; path=/;\";" +
+                                        "document.cookie = \"Microweb-User-Name=" + "" + "; path=/;\";" +
+                                        "window.location.replace(\"/v0\");" +
+                                        "</script>" +
+                                        "</body>" +
+                                        "</html>");
+                    } catch (Throwable e) {
+                        response.setStatusCode(401)
+                                .putHeader("Content-type", "text/html")
+                                .end("<html><body>Authorization error:<br/>" +
+                                        Throwables.getStackTraceAsString(e) + "</body></html>");
+                    }
+                });
+    }
+}
+```
+
+Since we won't use custom made permission management, but we'll use KeyCloak, then we can rewrite `PermissionManagement` business class to reflect our new reality:
+
+__File__ `src/main/java/microweb/sample/controller/PermissionManagement.java`:
+```java
+package microweb.sample.domain;
+
+import com.ultraschemer.microweb.domain.CentralUserRepositoryManagement;
+import com.ultraschemer.microweb.domain.Configuration;
+import com.ultraschemer.microweb.entity.User;
+import com.ultraschemer.microweb.error.StandardException;
+import io.vertx.core.json.JsonObject;
+import microweb.sample.domain.error.FinishAuthenticationConsentException;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+
+import java.util.Objects;
+import java.util.function.BiConsumer;
+
+public class PermissionManagement {
+    private static OkHttpClient client = new OkHttpClient();
+
+    public static void finishLogin(String state, String sessionState, String code,
+                                   BiConsumer<JsonObject, StandardException> callResult) {
+        // Since this method uses an internal REST call recursively, call it asynchronously, to avoid to block
+        // Vert.X event queue (A Vert.X future can be used here):
+        new Thread(() -> {
+            try {
+                Request clientRequest = new Request.Builder()
+                        .url(Configuration.read("server backend resource") +
+                                "/v0/finish-consent?" +
+                                "state=" + state + "&" +
+                                "session_state=" + sessionState + "&" +
+                                "code=" + code + "&" +
+                                "redirect_uri=" + Configuration.read("keycloak client redirect uri") + "&" +
+                                "client_secret=" + Configuration.read("keycloak client application secret") + "&" +
+                                "client_id=" + Configuration.read("keycloak client application"))
+                        .build();
+
+                try (Response response = client.newCall(clientRequest).execute()) {
+                    if (response.code() <= 299) {
+                        JsonObject res = new JsonObject(Objects.requireNonNull(response.body()).string());
+
+                        // Locate user from returned data, evaluating the permission of an ALWAYS permitted resource:
+                        User u = CentralUserRepositoryManagement.evaluateResourcePermission("GET", "/v0/logoff",
+                                "Bearer " + res.getString("access_token"));
+                        res.put("Microweb-User-Id", u.getId().toString());
+                        res.put("Microweb-User-Name", u.getName());
+                        res.put("Microweb-Central-Control-User-Id", u.getCentralControlId().toString());
+
+                        callResult.accept(res, null);
+                    } else {
+                        callResult.accept(null, new FinishAuthenticationConsentException("Unable to finish client authentication consent: " +
+                                Objects.requireNonNull(response.body()).string()));
+                    }
+                } catch (Exception e) {
+                    callResult.accept(null, new FinishAuthenticationConsentException("Unable to finish client authentication consent.", e));
+                }
+            } catch (Exception e) {
+                callResult.accept(null, new FinishAuthenticationConsentException("Unable to finish client authentication consent", e));
+            }
+        }).start();
+    }
+}
+```
+
+The Business Class above has a tricky asynchronous implementation because it calls another Microweb Sample route using HTTP Rest (`GET /v0/finish-consent`). __Only asynchronous operations can perform this type of self-referencing call. If a synchronous business call perform such self-referencing call, Vert.X event queue will hang up.__
+
+Now we have a complete login process, with two-factor evaluation, but we have a problem in the `DefaultHomePageController` class: it calls Microweb `AuthManagement.authorize` business call, which is incompatible to KeyCloak OpenId Microweb implementation. We must replace its call by other suitable calls, to load the application home page correctly.
+
+The correction is shown below:
+
+__File__ `src/main/java/microweb/sample/controller/DefaultHomePageController.java`, method `executeEvaluation`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.UserManagement;
+import com.ultraschemer.microweb.domain.bean.UserData;
+import com.ultraschemer.microweb.persistence.EntityUtil;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import freemarker.template.Template;
+import io.vertx.core.http.Cookie;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.ImageManagement;
+import microweb.sample.domain.bean.ImageListingData;
+import microweb.sample.view.FtlHelper;
+
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class DefaultHomePageController extends SimpleController {
+    // C.1: Create a static instance of the default home page template variable, to store and cache it:
+    private static Template homePageTemplate = null;
+
+    // C.2: Initialize the template defined above, suitably:
+    static {
+        try {
+            homePageTemplate = FtlHelper.getConfiguration().getTemplate("homePage.ftl");
+        } catch(Exception e) {
+            // This error should not occur - so print it in screen, so the developer can see it, while
+            // creating the project
+            e.printStackTrace();
+        }
+    }
+
+    // C.3: Define the default controller constructor:
+    public DefaultHomePageController() {
+        super(500, "a37c914b-f737-4a73-a226-7bd86baac8c3");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext routingContext, HttpServerResponse httpServerResponse) throws Throwable {
+        // Define homepage data model:
+        Map<String, Object> homepageDataRoot = new HashMap<>();
+
+        // Load user cookie:
+        HttpServerRequest request = routingContext.request();
+        Cookie authorizationToken = request.getCookie("Microweb-Access-Token");
+        Cookie userId = request.getCookie("Microweb-User-Id");
+
+        // Populate Homepage data model:
+        if(authorizationToken != null) {
+            // Get user data:
+            UserData u = UserManagement.loadUser(userId.getValue());
+
+            // Load images, if they are available for this user:
+            ImageManagement imageManagement = new ImageManagement(EntityUtil.getSessionFactory(), routingContext.vertx());
+            List<ImageListingData> imageListingData = imageManagement.list(u.getId());
+
+            // Load users, to assign images to them:
+            List<UserData> users = UserManagement.loadUsers(1000, 0);
+            users.sort(Comparator.comparing(UserData::getName));
+
+            homepageDataRoot.put("logged", true);
+            homepageDataRoot.put("user", u);
+            homepageDataRoot.put("images", imageListingData);
+            homepageDataRoot.put("users", users);
+        } else {
+            homepageDataRoot.put("logged", false);
+        }
+
+        // C.4: In the controller evaluation routine, render the template:
+        routingContext
+                .response()
+                .putHeader("Content-type", "text/html")
+                .putHeader("Cache-Control", "no-cache")
+                .end(FtlHelper.processToString(homePageTemplate, homepageDataRoot));
+    }
+}
+```
+
+Other business class are also problematic. The assignment of roles to users can't be made using internal Microweb business calls anymore. It must be made by KeyCloak - so you need to call KeyCloak to timplement this operation. It means that the business call called by `GuiAssignRoleController`, which is `UserManagement.setRoleToUser`, can't be used anymore. It must be replaced by a suitable call to KeyCloak REST API. If you analyse the class `CentralUserRepositoryManagement` you'll se how to perform such calls, and reimplement `GuiAssignRoleController` with the correct business call implementation (these will need to be implemented from scratch, since `CentralUserRepositoryManagement` doesn't have any routine to assign roles to users) is let as an exercise to the reader.
+
+The `ImageManagement` business class must be corrected too:
+
+__File__ `src/main/java/microweb/sample/domain/ImageManagement.java`, method `list()`:
+```java
+    public List<ImageListingData> list(UUID userId) throws StandardException {
+        try(Session session = openTransactionSession()) {
+            User user = session.createQuery("from User where id = :uid", User.class)
+                    .setParameter("uid", userId).getSingleResult();
+
+            List<ImageListingData> res = new LinkedList<>();
+
+            List<User_Image> accessibleImageList =
+                    session.createQuery("from User_Image where userId = :uid", User_Image.class)
+                            .setParameter("uid", user.getId())
+                            .list();
+            HashMap<UUID, User_Image> userImageMap = new HashMap<>();
+            accessibleImageList.forEach((i) -> userImageMap.put(i.getImageId(), i));
+
+            List<Image> allImages;
+            if(accessibleImageList.size() > 0) {
+                allImages = session.createQuery("from Image where id in :iid or ownerUserId = :oid order by ownerUserId", Image.class)
+                        .setParameterList("iid", accessibleImageList.stream().map(User_Image::getImageId).collect(Collectors.toList()))
+                        .setParameter("oid", user.getId())
+                        .list();
+            } else {
+                allImages = session.createQuery("from Image where ownerUserId = :oid order by ownerUserId", Image.class)
+                        .setParameter("oid", user.getId())
+                        .list();
+            }
+
+            UUID ownerUserId = null;
+            String ownerUserName = null;
+            for(Image i: allImages) {
+                if(!i.getOwnerUserId().equals(ownerUserId)) {
+                    User u = session.createQuery("from User where id = :uid", User.class)
+                            .setParameter("uid", i.getOwnerUserId())
+                            .getSingleResult();
+                    ownerUserId = u.getId();
+                    ownerUserName = u.getName();
+                }
+
+                ImageListingData imageListingData = new ImageListingData();
+                imageListingData.setId(i.getId());
+                imageListingData.setName(i.getName());
+                imageListingData.setOwnerId(ownerUserId);
+                imageListingData.setOwnerName(ownerUserName);
+                imageListingData.setCreatedAt(i.getCreatedAt());
+                if(userImageMap.containsKey(i.getId())) {
+                    User_Image ui = userImageMap.get(i.getId());
+                    imageListingData.setAlias(ui.getAlias());
+                }
+                res.add(imageListingData);
+            }
+
+            // Set return data in creation order:
+            res.sort(Comparator.comparing(ImageListingData::getCreatedAt));
+
+            return res;
+        } catch(PersistenceException pe) {
+            throw new ImageManagementListingException("Unable to list images.", pe);
+        }
+    }
+```
+
+To avoid problems with user management calls, let's change the `userManagementPage.flt` template to hide user role attribution calls:
+
+__File__ ``:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>User Management</p>
+    <p>Welcome <strong>${user.name}</strong>!</p>
+    <p>Return to <a href="/v0">home</a></p>
+    <hr/>
+    <form method="post" action="/v0/gui-user">
+        <table>
+            <tr>
+                <td>Name:</td>
+                <td style="padding-left: 10px"><input type="text" name="name"/></td>
+            </tr>
+            <tr>
+                <td>Password:</td>
+                <td style="padding-left: 10px"><input type="password" name="password"/></td></tr>
+            <tr>
+                <td>Password confirmation:</td>
+                <td style="padding-left: 10px"><input type="password" name="passConfirmation"/></td>
+            </tr>
+            <tr>
+                <td>Given name:</td>
+                <td style="padding-left: 10px"><input type="text" name="givenName"/></td>
+            </tr>
+            <tr>
+                <td>Family name:</td>
+                <td style="padding-left: 10px"><input type="text" name="familyName"/></td>
+            </tr>
+            <tr>
+                <td>Role:</td>
+                <td style="padding-left: 10px">
+                    <select name="role">
+                        <#list roles as r>
+                        <option value="${r.name}">${r.name}</option>
+                        </#list>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        <input type="submit" value="Create"/>
+    </form>
+    <hr/>
+    <table style="width: 100%">
+        <tr>
+            <td>Name:</td>
+            <td>Roles:</td>
+        </tr>
+        <#list users as u>
+            <tr>
+                <td>${u.name}</td>
+                <td>
+                    <#list u.roles as r>
+                        <strong style="color: gray">[</strong>${r.name}<strong style="color: gray">]</strong>&nbsp;
+                    </#list>
+                </td>
+            </tr>
+        </#list>
+    </table>
+</body>
+</html>
+```
+
+And let change the user addition controllers, to use `CentralUserRepositoryManagement` instead of `UserManagement` business class:
+
+__File__ `src/main/java/microweb/sample/controller/GuiCreateUserController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.controller.bean.CreateUserData;
+import com.ultraschemer.microweb.domain.CentralUserRepositoryManagement;
+import com.ultraschemer.microweb.validation.Validator;
+import com.ultraschemer.microweb.vertx.SimpleController;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.Json;
+import io.vertx.ext.web.RoutingContext;
+
+import java.util.Collections;
+
+public class GuiCreateUserController extends SimpleController {
+    public GuiCreateUserController() {
+        super(500, "63ccb2ee-3c99-4b20-91d4-bb521f4945dd");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        HttpServerRequest request = context.request();
+
+        if(request.getHeader("Content-Type").trim().toLowerCase().startsWith("application/json")) {
+            CreateUserData userData = Json.decodeValue(context.getBodyAsString(), CreateUserData.class);
+            Validator.ensure(userData);
+
+            CentralUserRepositoryManagement.registerUser(context.get("user"), userData, Collections.singletonList(request.getFormAttribute("role")));
+
+            response.setStatusCode(204).end();
+        } else {
+            // Get form data:
+            CreateUserData userData = new CreateUserData();
+            userData.setName(request.getFormAttribute("name").toLowerCase());
+            userData.setAlias(userData.getName());
+            userData.setPassword(request.getFormAttribute("password"));
+            userData.setPasswordConfirmation(request.getFormAttribute("passConfirmation"));
+            userData.setGivenName(request.getFormAttribute("givenName"));
+            userData.setFamilyName(request.getFormAttribute("familyName"));
+
+            Validator.ensure(userData);
+
+            CentralUserRepositoryManagement.registerUser(context.get("user"), userData, Collections.singletonList(request.getFormAttribute("role")));
+
+            // Redirect to users management interface:
+            response.putHeader("Content-type", "text/html")
+                    .putHeader("Location", "/v0/gui-user-management")
+                    .setStatusCode(303)
+                    .end();
+        }
+    }
+}    
+```
+
+__File__ `src/main/java/microweb/sample/App.java`, method `initialization`:
+```java
+    // Change this:
+    // registerController(HttpMethod.POST, "/v0/user", new UserCreationController());
+    // To this:
+    registerController(HttpMethod.POST, "/v0/user", new GuiCreateUserController());
+```
+
+_Obs.: Microweb synchronizes `user_` and `role` tables as users execute REST calls on system. To load roles and users from Microweb local database doesn't ensure the most recent data will be retrieved. You can create a process to update regularly these information or create a process to force users to log in the system after their registration._
+
+After these changes, the sample application has been adapted to use OpenID and import all KeyCloak features, including user federation, integration with Social Networks, and permission control.
 
 ### 5.2.5. Using Microweb as middleware to internal microservices
 
