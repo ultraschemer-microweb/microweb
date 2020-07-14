@@ -3933,7 +3933,7 @@ In this form, set:
 * __Direct Access Grants Enabled__: __On__
 * __Services Accounts Enabled__: __On__
 * __Authorization Enabled__: __On__. This option is specially relevant, because without it, no Resource Permission Control is possible.
-* __Valid Redirect URIs__: `http://www.sample.microweb:9080/v0/*`. This setting is really important, becauseit says any HTTP address prepended by the given string will be accepted as an authentication redirection. Reading about OpenID and [OAuth2](https://oauth.net/2/) specifications provide more information. 
+* __Valid Redirect URIs__: `/*`. This setting is really important, because it says any HTTP address prepended by the given string will be accepted as an authentication redirection. Reading about OpenID and [OAuth2](https://oauth.net/2/) specifications provide more information. In this case we're using a relative path, so the Referer address will be required to authentication. Since we didn't enable CORS, no cross authentication is possible, anyway. 
 
 You can maintain all other options as default.
 
@@ -4329,6 +4329,42 @@ Now KeyCloak and OpenId are configured correctly, we need to reimplement Login a
 Login must have two steps. The first step is to present to the user the KeyCloak login form.
 
 This is simple, we just need to create a link at the Home Page template, as shown below:
+
+__File__ `src/main/resources/views/homePage.ftl`:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" type="text/css" href="/static/index.css">
+    <title>Microweb Sample</title>
+</head>
+<body>
+    <p>This is Microweb generated Home Page!</p>
+    <#if logged>
+    <!--
+        ...
+        ...
+        Code for the logged user - maintain what has been presented before
+         -->
+    <#else>
+        <p>Login <a href="/auth/realms/microweb/protocol/openid-connect/auth?scope=openid&response_type=code&client_id=microwebsampleapp&redirect_uri=http:%2F%2Fwww.sample.microweb:9080%2Fv0%2Ffinish-login&state=000001">here</a>.</p>
+    </#if>
+</body>
+</html>
+```
+
+As can be seen, login form is not needed anymore. It can just be removed.
+
+The new login link redirects the user to KeyCloak Microweb realm login. The user logs in the realm, and he/she can access all clients registered on that realm, depending on his/her permissions.
+
+Some observations must be noted:
+
+1. The login URL is from KeyCloak, and if it must be customized, it must be customized on KeyCloak. Such customization is beyond the scope of this document.
+2. The login procedure performed by the user, on KeyCloak, represents the first step of the required two-factor authentication.
+3. The `redirect_uri` parameter in the link above must fulfull the redirection criterion of Microweb realm. In this sample, it's hard-coded, but it can be obtained from a configuration, from Javascript redirection or form, or anything correspondent. The redirection URL must be an absolute url (not a relative one).
+4. To explain the details about the login URL is beyond the scope of this tutorial. Just read KeyCloak, OpenID or OAuth2 documentation about it.
+
 
 __TODO: continue from here__
 
