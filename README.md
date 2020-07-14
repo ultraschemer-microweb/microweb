@@ -4825,13 +4825,40 @@ _Obs.: Microweb synchronizes `user_` and `role` tables as users execute REST cal
 
 After these changes, the sample application has been adapted to use OpenID and import all KeyCloak features, including user federation, integration with Social Networks, and permission control.
 
+Go to KeyCloak, create users, assign roles to them, and test the application with these users.
+
 ### 5.2.5. Using Microweb as middleware to internal microservices
 
-__TODO__
+The last feature to be present in this README is the use of Microweb as Middleware for internal REST services.
+
+Why to use this framework in this fashion? Because not all technologies are best implemented in all available platforms and programming languages. REST architecture permit the creation of loose-coupled services which can know each other if we have the correct middleware, and registration services.
+
+Registration services depend on system architecture, and this problem is far beyond the scope of Microweb and this README. But Microweb permit the registration of external REST services as routes, and these routes will be subject to the same OpenID permission control as any other REST service implemented as a Microweb controller.
+
+Since these services are REST, they're restricted to these five methods:
+
+* `GET`
+* `POST`
+* `PATCH`
+* `PUT`
+* `DELETE`
+
+And this restriction is not suitable to all needs.
+
+To support extra needs, the reverse proxy packed with Microweb can be used as middleware to other services, as well, and these are subject to Permission Control and filtering as any other service implemented directly using Microweb and Vert.X routing. When the reverse proxy is used, no restriction on HTTP methods exist, and full flexibility is available.
+
+These features are powerful, but they're simple, not needing extense explanation as the MVC library provided by the Framework. We'll start understanding the REST Routing based reverse proxy, in section __5.2.5.1__, below, and then, we proceed to the complete reverse proxy, in section __5.2.5.2__, after.
 
 #### 5.2.5.1. Implementing authorized REST proxies programatically
 
-__TODO__
+What if we need a technology we find an implementation in another platform than Java suitable to our needs? It's simple, we just create a REST microservice with that technology, and then register such service in a Microweb application using one of these two Controller classes:
+
+1. __`SimpleServerProxyController`__: This class is correspondent to the `SimpleController` class, but while SimpleController, when specialized, permit the creation of a Java Controller, `SimpleServerProxyController` redirects any call to it to an external REST server, receiving the same URI, method, EntityBody and Headers from the original call. If a SimpleServerProxyController receives a `GET /abc/def?a=b` call, it will redirect this exact call (the same URI, the same method, the same query-string) to an external service registered in this `simpleServerProxyController` instance. Since this class is correspondent to `SimpleController`, it is not subject to OpenID permission evaluation. 
+2. __`CentralAuthorizedServerProxyController`__: This class is correspondent to the `CentralUserRepositoryAuthorizedController` class, so its calls are subject to OpenID permission evaluation. All other features are exactly equals to that available by `SimpleServerProxyController`.
+
+Both classes are available in the `com.ultraschemer.microweb.proxy` package.
+
+One 
 
 #### 5.2.5.2. Implementing complete reverse proxies
 
