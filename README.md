@@ -4365,6 +4365,7 @@ Some observations must be noted:
 3. The `redirect_uri` parameter in the link above must fulfull the redirection criterion of Microweb realm. In this sample, it's hard-coded, but it can be obtained from a configuration, from Javascript redirection or form, or anything correspondent. The redirection URL must be an absolute url (not a relative one).
 4. To explain the details about the login URL is beyond the scope of this tutorial. Just read KeyCloak, OpenID or OAuth2 documentation about it.
 
+Now we need to implement the login finish redirection route. This route will implement the second step for two-factor authentication, validating the application with its secret.
 
 __TODO: continue from here__
 
