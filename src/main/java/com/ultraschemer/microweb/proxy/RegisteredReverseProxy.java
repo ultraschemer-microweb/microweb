@@ -13,6 +13,7 @@ import io.vertx.core.json.Json;
 import org.littleshoot.proxy.*;
 import org.littleshoot.proxy.impl.DefaultHttpProxyServer;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -23,6 +24,8 @@ public class RegisteredReverseProxy {
     private final LinkedList<String> pathRegistration = new LinkedList<>();
     private final HashMap<String, Boolean> pathsToValidatePermission = new HashMap<>();
     private int port = 8080;
+    private String addr = "0.0.0.0";
+
     HttpProxyServerBootstrap serverBootstrap;
     HttpProxyServer server;
 
@@ -70,7 +73,7 @@ public class RegisteredReverseProxy {
 
     protected void initialize() {
         serverBootstrap = DefaultHttpProxyServer.bootstrap()
-                .withPort(port)
+                .withAddress(new InetSocketAddress(this.getAddress(), port))
                 .withFiltersSource(new HttpFiltersSourceAdapter() {
                     public HttpFilters filterRequest(HttpRequest originalRequest, ChannelHandlerContext ctx) {
                         return new HttpFiltersAdapter(originalRequest) {
@@ -95,8 +98,28 @@ public class RegisteredReverseProxy {
                                                 }
                                                 String host = findUriMappedServer(request.getUri());
                                                 request.setUri("http://" + host + request.getUri());
-                                                request.headers().remove("Host");
-                                                request.headers().add("Host", host);
+                                                String xForwardedFor = request.headers().get("X-Forwarded-For");
+                                                String xForwardedProto = request.headers().get("X-Forwarded-Proto");
+
+                                                if(xForwardedFor != null) {
+                                                    xForwardedFor += ",";
+                                                } else {
+                                                    xForwardedFor = "";
+                                                }
+
+                                                if(xForwardedProto == null) {
+                                                    xForwardedProto = "http";
+                                                }
+
+                                                String [] forward = host.split(":");
+
+                                                request.headers().remove("Referer");
+                                                request.headers().remove("X-Forwarded-For");
+                                                request.headers().remove("X-Forwarded-Proto");
+                                                request.headers().add("Referer", "http://" + host + request.getUri());
+                                                request.headers().add("X-Forwarded-For", xForwardedFor + forward[0]);
+                                                request.headers().add("X-Forwarded-Proto", xForwardedProto);
+                                                System.out.println("Merda");
                                             } catch(StandardException|StandardRuntimeException se) {
                                                 buffer = Unpooled.wrappedBuffer(Json.encode(se.bean()).getBytes(StandardCharsets.UTF_8));
                                             } catch(Throwable t) {
@@ -169,5 +192,13 @@ public class RegisteredReverseProxy {
     public void stop() {
         server.stop();
         server = null;
+    }
+
+    public String getAddress() {
+        return addr;
+    }
+
+    public void setAddress(String addr) {
+        this.addr = addr;
     }
 }

@@ -171,7 +171,10 @@ public class App extends WebAppVerticle {
     }
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-        vertx.deployVerticle(new App());
+        // Vertx vertx = Vertx.vertx();
+        // vertx.deployVerticle(new App());
+        CentralAuthorizedRegisteredReverseProxy proxy = new CentralAuthorizedRegisteredReverseProxy(9080);
+        proxy.registerPath("^\\/auth.*$", "localhost:8080");
+        proxy.run();
     }
 }
