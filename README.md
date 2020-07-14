@@ -4858,7 +4858,21 @@ What if we need a technology we find an implementation in another platform than 
 
 Both classes are available in the `com.ultraschemer.microweb.proxy` package.
 
-One 
+One interesting feature of __all routes__ registered in Microweb Sample is that they receive a __versioning prefix__ (`/v0`), with the very exception of the path `/`. It means that if we have any service path which doesn't start with `/v0/`, or doesn't match with the pattern `^\/v[0-9]+\/.*$` or it isn't `/`, it isn't implemented as an internal Microweb Sample REST service path.
+
+This feature opens lots of possibilities of use of external microservices in the system.
+
+Microweb standard database is PostgreSQL. There is a project called __[PostgREST](http://postgrest.org)__ which enable a full REST interface for a PostgreSQL database. Do you remember when it was said REST doesn't have default searching facilities? PostgREST implements very powerful REST search for any database implemented on PostgreSQL. We can just reuse PostgREST in our project, and provide search faciltiies to our users.
+
+__But PostgREST is implemented in Haskell.__
+
+It's no problem to Microweb. Since PostgREST is REST, we can register it as a Microweb microservice, and put it under KeyCloak versioning control, and accessible to any client of Microweb Sample application.
+
+Let's start assuming we just want to provide an Image Search to our users, so we'll configure PostgREST, and expose only one entity search: `image`. It'll be read only, by PostgREST configuration, and restricted to users with `user-manager` permissions. We don't want a user can search images from other users (_Obs.: we can implement a filter to restrict such searches, but this implementation is not objective of this README_).
+
+##### 5.2.5.1.1. Installing and configuring PostgREST
+
+__TODO: continue from here__
 
 #### 5.2.5.2. Implementing complete reverse proxies
 
