@@ -4301,7 +4301,7 @@ __File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
         //
         RegisteredReverseProxy proxy = new RegisteredReverseProxy(9080);
         proxy.registerPath("^\\/auth.*$", "localhost:8080");
-        proxy.registerPath("^\\/v0\\.*", "localhost:48080" );
+        proxy.registerPath("^\\/v0.*$", "localhost:48080" );
         proxy.registerPath("^\\/$", "localhost:48080");
         proxy.run();
     }
@@ -4309,7 +4309,29 @@ __File__ `src/main/java/microweb/sample/App.java`, method `App.initialization`:
 
 The code above will redirect any uri with starting with `/auth` to a server located at localhost, but listening at __8080__ port, which is our instance of KeyCloak. The uri `/`, and any uri starting with `/v0` will be redirected to Microweb sample app, itself.
 
-Just implement it and restart Microweb sample application. The reverse proxy must proceed correctly.
+_Obs.: Make sure your KeyCloak instance is prepared to receive connections from reverse proxies, as show in [this documentation](https://www.keycloak.org/docs/latest/server_installation/index.html#_setting-up-a-load-balancer-or-proxy). In this example, it's not necessary to prepare KeyCloak to HTTPS enabled reverse proxies._
+
+Just implement it and restart Microweb sample application. The reverse proxy must proceed correctly, you can call KeyCloak interface from the address `http://www.sample.microweb:9080/auth`, while the application will be accessible from `http://www.sample.microweb:9080/` - so both applications, although in different microservices, can be seen as a single Http Web Application:
+
+![Working reverse proxy](microweb-sample-reverse-proxy-unifying-microservices.png)
+
+Once this configuration is done, let's verify if KeyCloak is ___really___ configured as a Microweb microservice. To test it, we just need to access the "well known" OpenId endpoint:
+
+__URL__ `http://www.sample.microweb:9080/auth/realms/microweb/.well-known/uma2-configuration`:
+![Open Id URL Consistency](microwebsampleapp-openid-wellknown-urls-consistency.png)
+
+The OpenID configuration URLs and the application URLs are consistent - so KeyCloak is correctly registered as a Microweb microservice.
+
+#### 5.1.4.2. Implementing Login and Logoff to support OpenId
+
+Now KeyCloak and OpenId are configured correctly, we need to reimplement Login and Logoff calls, to support double authentication.
+
+Login must have two steps. The first step is to present to the user the KeyCloak login form.
+
+This is simple, we just need to create a link at the Home Page template, as shown below:
+
+__TODO: continue from here__
+
 ### 5.2.5. Using Microweb as middleware to internal microservices
 
 __TODO__
