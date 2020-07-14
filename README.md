@@ -4153,7 +4153,7 @@ delete from user_;
 
 Since the other tables aren't used, they're irrelevant on this point of project.
 
-### 5.2.4. Adjusting KeyCloak integration on App class
+### 5.2.3. Adjusting KeyCloak integration on App class
 
 The way Microweb integrate with KeyCloak is different from the way we used the framework until now. Each controller must be integrated to KeyCloak authorization calls __independently__. Filters aren't used.
 
