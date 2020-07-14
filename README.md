@@ -4864,7 +4864,7 @@ This feature opens lots of possibilities of use of external microservices in the
 
 Microweb standard database is PostgreSQL. There is a project called __[PostgREST](http://postgrest.org)__ which enable a full REST interface for a PostgreSQL database. Do you remember when it was said REST doesn't have default searching facilities? PostgREST implements very powerful REST search for any database implemented on PostgreSQL. We can just reuse PostgREST in our project, and provide search faciltiies to our users.
 
-__But PostgREST is implemented in Haskell.__
+But PostgREST is implemented in __Haskell__.
 
 It's no problem for Microweb. Since PostgREST is REST, we can register it as a Microweb microservice, and put it under KeyCloak versioning control, accessible to any client of Microweb Sample client.
 
