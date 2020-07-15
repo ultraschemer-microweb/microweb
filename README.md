@@ -4526,10 +4526,59 @@ public class PermissionManagement {
             }
         }).start();
     }
+
+    public static void logoff(String refreshToken, String accessToken, BiConsumer<JsonObject, StandardException> callResult) {
+        new Thread(() -> {
+            try {
+                FormBody body = new FormBody.Builder()
+                        .add("client_id", Configuration.read("keycloak client application"))
+                        .add("client_secret", Configuration.read("keycloak client application secret"))
+                        .add("refresh_token", refreshToken)
+                        .build();
+                Request clientRequest = new Request.Builder()
+                        .url(CentralUserRepositoryManagement.wellKnown().getString("end_session_endpoint"))
+                        .post(body)
+                        .addHeader("Authorization", "Bearer " + accessToken)
+                        .build();
+                try (Response response = client.newCall(clientRequest).execute()) {
+                    if (response.code() <= 299) {
+                        if(response.code()!=204) {
+                            JsonObject res = new JsonObject(Objects.requireNonNull(response.body()).string());
+                            callResult.accept(res, null);
+                        } else {
+                            callResult.accept(new JsonObject(),null);
+                        }
+                    } else {
+                        callResult.accept(null, new FinishAuthenticationConsentException("Unable to finish client authentication consent: " +
+                                Objects.requireNonNull(response.body()).string()));
+                    }
+                } catch(Exception e) {
+                    callResult.accept(null, new LogoffException("Unable to perform logoff.", e));
+                }
+            } catch(Throwable t) {
+                callResult.accept(null, new LogoffException("Unable to perform logoff.", t));
+            }
+        }).start();
+    }
 }
 ```
 
 The Business Class above has a tricky asynchronous implementation because it calls another Microweb Sample route using HTTP Rest (`GET /v0/finish-consent`). __Only asynchronous operations can perform this type of self-referencing call. If a synchronous business call perform such self-referencing call, Vert.X event queue will hang up.__
+
+We implemented a Logoff business routine too, which needs the next exception class:
+
+__File__ `src/main/java/microweb/sample/domain/error/LogoffException.java`:
+```java
+package microweb.sample.domain.error;
+
+import com.ultraschemer.microweb.error.StandardException;
+
+public class LogoffException extends StandardException {
+    public LogoffException(String message, Throwable cause) {
+        super("31ae70ca-35fc-4ba6-9b61-aafcf0078bb5", 500, message, cause);
+    }
+}
+```
 
 Now we have a complete login process, with two-factor evaluation, but we have a problem in the `DefaultHomePageController` class: it calls Microweb `AuthManagement.authorize` business call, which is incompatible to KeyCloak OpenId Microweb implementation. We must replace its call by other suitable calls, to load the application home page correctly.
 
@@ -4618,7 +4667,55 @@ public class DefaultHomePageController extends SimpleController {
 }
 ```
 
-Other business class are also problematic. The assignment of roles to users can't be made using internal Microweb business calls anymore. It must be made by KeyCloak - so you need to call KeyCloak to timplement this operation. It means that the business call called by `GuiAssignRoleController`, which is `UserManagement.setRoleToUser`, can't be used anymore. It must be replaced by a suitable call to KeyCloak REST API. If you analyse the class `CentralUserRepositoryManagement` you'll se how to perform such calls, and reimplement `GuiAssignRoleController` with the correct business call implementation (these will need to be implemented from scratch, since `CentralUserRepositoryManagement` doesn't have any routine to assign roles to users) is let as an exercise to the reader. Other user data updates also need to be altered to use `CentralUserRepositoryManagement` features, or call KeyCloak directly. An example of this is the password change API calls.
+We need to adjust logoff controller too, with this new code:
+
+__File__ `src/main/java/microweb/sample/controller/GuiUserLogoffProcessController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.error.StandardException;
+import com.ultraschemer.microweb.vertx.CentralUserRepositoryAuthorizedController;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.RoutingContext;
+import microweb.sample.domain.PermissionManagement;
+
+public class GuiUserLogoffProcessController extends CentralUserRepositoryAuthorizedController {
+    public GuiUserLogoffProcessController() {
+        super(500, "eb474551-42d5-4452-be4f-4875d525b993");
+    }
+
+    @Override
+    public void executeEvaluation(RoutingContext context, HttpServerResponse response) throws Throwable {
+        String token = context.getCookie("Microweb-Access-Token").getValue();
+        String refreshToken = context.getCookie("Microweb-Refresh-Token").getValue();
+
+        PermissionManagement.logoff(refreshToken, token, (JsonObject j, StandardException se) -> {
+            asyncEvaluation(500, "8ada30f6-e400-4994-9c2e-cd41df80439f", context, () -> {
+                // Delete all cookies:
+                response.setStatusCode(200)
+                        .putHeader("Content-type", "text/html")
+                        .end("<html><head>" +
+                                "<title>Microweb login</title>" +
+                                "<head>" +
+                                "<body>Logging in..." +
+                                "<script language=\"javascript\">" +
+                                "document.cookie = \"Microweb-Access-Token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\";" +
+                                "document.cookie = \"Microweb-User-Id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\";" +
+                                "document.cookie = \"Microweb-Central-Control-User-Id=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\";" +
+                                "document.cookie = \"Microweb-Refresh-Token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\";" +
+                                "document.cookie = \"Microweb-User-Name=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT\";" +
+                                "window.location.replace(\"/v0\");" +
+                                "</script>" +
+                                "</body>" +
+                                "</html>");
+            });
+        });
+    }
+}
+```
+
+Other business classes and methods are also problematic. The refresh of access key must be implemented. The assignment of roles to users can't be made using internal Microweb business calls anymore. It must be made by KeyCloak - so you need to call KeyCloak to timplement this operation. It means that the business call called by `GuiAssignRoleController`, which is `UserManagement.setRoleToUser`, can't be used anymore. It must be replaced by a suitable call to KeyCloak REST API. If you analyse the class `CentralUserRepositoryManagement` you'll se how to perform such calls, and reimplement `GuiAssignRoleController` with the correct business call implementation (these will need to be implemented from scratch, since `CentralUserRepositoryManagement` doesn't have any routine to assign roles to users) is let as an exercise to the reader. Other user data updates also need to be altered to use `CentralUserRepositoryManagement` features, or call KeyCloak directly. An example of this is the password change API calls.
 
 The `ImageManagement` business class must be corrected too:
 
