@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.6.9"
+  implementation "com.ultraschemer.microweb:microweb:0.6.13"
 }
 ```
 
@@ -61,7 +61,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.6.9</version>
+    <version>0.6.13</version>
   </dependency>
 </dependencies>
 ```
@@ -389,7 +389,7 @@ repositories {
 
 dependencies {
     // The entire Microweb framework:
-    implementation 'com.ultraschemer.microweb:microweb:0.6.9'
+    implementation 'com.ultraschemer.microweb:microweb:0.6.13'
 
     // Database driver:
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'
@@ -5097,11 +5097,13 @@ Now, you can customize the sample application to your needs, or correct all of i
 
 The most important Microweb features have been presented.
 
+The OpenID sample can be found [here](https://github.com/ultraschemer/microweb-sample-openid).
+
 # 6. Conclusions and Next Steps
 
 This README and Tutorial has the objective to present Microweb as an MVC framework, with OpenID permission control enabled and as a framework to register REST and HTTP services developed in multiple technologies, under SOA architecture.
 
-Microweb doesn't aim to be the best implementation of these architectures, nor be the ultimate MVC, OpenID or SOA middleware. It aims to provide Vert.X integration with OpenID, through KeyCloak, and to be the base of REST services in heterogenous environments.
+Microweb doesn't aim to be the best implementation of these architectures, nor to be the ultimate MVC, OpenID or SOA middleware. It aims to provide Vert.X integration with OpenID, through KeyCloak, and to be the base of REST services in heterogenous environments.
 
 This project is being published to be useful. Any help to improve the framework is welcome, and if Microweb is useful to you, let us know.
 
