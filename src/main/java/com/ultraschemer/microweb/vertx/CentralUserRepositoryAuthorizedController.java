@@ -24,7 +24,9 @@ public abstract class CentralUserRepositoryAuthorizedController extends SimpleCo
     public void beforeEvaluation(RoutingContext context) throws StandardException {
         String contentType = context.request().getHeader("Content-type");
         if (contentType != null && contentType.toLowerCase().trim().startsWith("multipart/form-data")) {
-            context.request().setExpectMultipart(true);
+            try {
+                context.request().setExpectMultipart(true);
+            } catch(Throwable t) { /* Ignore */ }
         }
 
         HttpServerRequest request = context.request();

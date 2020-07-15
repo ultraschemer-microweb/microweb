@@ -4233,7 +4233,6 @@ The controllers which must be changed in this way are listed below, all of them 
 * `GuiImageCreationController`
 * `GuiUserManagementController`
 * `GuiAssignRoleController`
-* `GuiCreateUserController`
 * `UserCreationController`
 * `UserController`
 * `OtherUsersController`
@@ -4619,7 +4618,7 @@ public class DefaultHomePageController extends SimpleController {
 }
 ```
 
-Other business class are also problematic. The assignment of roles to users can't be made using internal Microweb business calls anymore. It must be made by KeyCloak - so you need to call KeyCloak to timplement this operation. It means that the business call called by `GuiAssignRoleController`, which is `UserManagement.setRoleToUser`, can't be used anymore. It must be replaced by a suitable call to KeyCloak REST API. If you analyse the class `CentralUserRepositoryManagement` you'll se how to perform such calls, and reimplement `GuiAssignRoleController` with the correct business call implementation (these will need to be implemented from scratch, since `CentralUserRepositoryManagement` doesn't have any routine to assign roles to users) is let as an exercise to the reader.
+Other business class are also problematic. The assignment of roles to users can't be made using internal Microweb business calls anymore. It must be made by KeyCloak - so you need to call KeyCloak to timplement this operation. It means that the business call called by `GuiAssignRoleController`, which is `UserManagement.setRoleToUser`, can't be used anymore. It must be replaced by a suitable call to KeyCloak REST API. If you analyse the class `CentralUserRepositoryManagement` you'll se how to perform such calls, and reimplement `GuiAssignRoleController` with the correct business call implementation (these will need to be implemented from scratch, since `CentralUserRepositoryManagement` doesn't have any routine to assign roles to users) is let as an exercise to the reader. Other user data updates also need to be altered to use `CentralUserRepositoryManagement` features, or call KeyCloak directly. An example of this is the password change API calls.
 
 The `ImageManagement` business class must be corrected too:
 
@@ -4871,6 +4870,35 @@ It's no problem for Microweb. Since PostgREST is REST, we can register it as a M
 Let's start assuming we just want to provide an Image Search to our users, so we'll configure PostgREST, and expose only one entity search: `image`. It'll be read only, by PostgREST configuration, and restricted to users with `user-manager-api` permissions. We don't want a user can search images from other users (_Obs.: we can implement a filter to restrict such searches, but this implementation is not objective of this README_).
 
 ##### 5.2.5.1.1. Installing and configuring PostgREST
+
+[Install PostgREST](http://postgrest.org/en/v7.0.0/tutorials/tut0.html) on your system, and let it available in __PATH__, sou you can call the executable in the command line.
+
+Prepare this configuration file:
+
+__File__ `microwebsample.conf`:
+```ini
+db-uri       = "postgres://microwebsample:microwebsample@localhost:5432/microwebsample"
+db-schema    = "public"
+
+# Anonymous access = full access - service available only internally, controlled by Security Groups
+db-anon-role = "microwebsample" 
+
+# Limit the number of rows
+max-rows = 1024
+
+# Access and servers:
+server-host = "*"
+server-port = 9580
+```
+
+Then run the service:
+
+```sh
+$ postgrest microwebsample.conf
+Listening on port 9580
+Attempting to connect to the database...
+Connection successful
+```
 
 __TODO: continue from here__
 
