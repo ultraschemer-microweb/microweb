@@ -4016,7 +4016,7 @@ Considering the resource naming rules presented above, the rule of thumb to nami
 When we open the current `microweb.sample.App.initialize` method, we can see all routes registered in the system. Some of the routes (`GET /#`, `GET /v0#`, `POST /v0/login#`, `GET /v0/gui-user-login`, `POST /v0/gui-user-login`) don't need authorization, so we can simply ignore them. All the other need. Let's just list all of them, using Microweb KeyCloak resource naming rules (`METHOD path#`), and saving all of them as resources in KeyCloak:
 
 * `GET /v0/logoff#` 
-* `POST /v0/gui-user-logoff#` 
+* `GET /v0/gui-user-logoff#` 
 * `POST /v0/gui-image/:id/assign#` 
 * `POST /v0/gui-image/:id/raw#` 
 * `POST /v0/gui-image#` 
@@ -4842,7 +4842,10 @@ Since these services are REST, they're restricted to these five methods:
 * `PUT`
 * `DELETE`
 
-And this restriction is not suitable to all needs.
+As an extra restriction, to register services programatically, the entity-body also need to be representable by a UTF-8 string (so all `multipart/form-data` requests aren't supported).
+
+Obviously, these restrictions are not suitable to all needs.
+
 
 To support extra needs, the reverse proxy packed with Microweb can be used as middleware to other services, as well, and these are subject to Permission Control and filtering as any other service implemented directly using Microweb and Vert.X routing. When the reverse proxy is used, no restriction on HTTP methods exist, and full flexibility is available.
 
@@ -4900,16 +4903,208 @@ Attempting to connect to the database...
 Connection successful
 ```
 
-__TODO: continue from here__
+I've added some images to database, then I can access them directly, using PostgREST:
+
+```sh
+$ curl 'http://localhost:9580/image?name=fts.delicate.png&select=id,name'
+[{"id":"717b2f6c-44ba-4275-b686-cc5c6ffa185a","name":"delicate.png"}]
+
+$ curl "http://localhost:9580/image?select=id,name"
+[{"id":"717b2f6c-44ba-4275-b686-cc5c6ffa185a","name":"delicate.png"},
+ {"id":"04766886-f9be-4af4-83d2-d253a7bf869b","name":"fdsa.png"},
+ {"id":"420a9b69-a7bc-4dd7-93bd-9524333798c1","name":"oura.jpg"}]
+```
 
 ##### 5.2.5.1.2. Registering PostgREST `image` search as Microweb route
 
-__TODO__
+We can add the route `GET /image` in the project, specializing the class `CentralAuthorizedServerProxyController` and creating a proxy redirector class:
+
+__File__ `src/main/java/microweb/sample/controller/PostgRESTRedirectionController.java`:
+```java
+package microweb.sample.controller;
+
+import com.ultraschemer.microweb.domain.Configuration;
+import com.ultraschemer.microweb.proxy.CentralAuthorizedServerProxyController;
+
+public class PostgRESTRedirectionController extends CentralAuthorizedServerProxyController {
+    public PostgRESTRedirectionController() {
+        super(500, "150e7454-2754-4270-bf0a-a70958cf17ea");
+    }
+
+    @Override
+    protected String getServerAddress() throws Throwable {
+        String postgrestAddress = Configuration.read("PostgREST address");
+        if(postgrestAddress.equals("")) {
+            return "http://localhost:9580";
+        }
+        return postgrestAddress;
+    }
+}
+```
+
+And registering the image search route in the `App.initialization` method:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `initialization`
+```java
+    @Override
+    public void initialization() throws Exception {
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // Register controllers:
+
+        // Finish login authentication:
+        registerController(HttpMethod.GET, "/v0/finish-login", new FinishLoginController());
+
+        // Default finish consent call:
+        registerController(HttpMethod.GET, "/v0/finish-consent", new FinishConsentController());
+
+        // User access controllers:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+        registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+
+        // Image manipulation:
+        registerController(HttpMethod.POST, "/v0/gui-image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/gui-image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/gui-image", new GuiImageCreationController());
+
+        // User management:
+        registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
+        registerController(HttpMethod.POST, "/v0/gui-user/:id/role", new GuiAssignRoleController());
+        registerController(HttpMethod.POST, "/v0/gui-user", new GuiCreateUserController());
+
+        // REST API calls:
+        registerController(HttpMethod.POST, "/v0/user", new GuiCreateUserController());
+        registerController(HttpMethod.GET, "/v0/user", new UserController());
+        registerController(HttpMethod.GET, "/v0/user/:userIdOrName", new OtherUsersController());
+        registerController(HttpMethod.PATCH, "/v0/user/:id/password", new UserPasswordUpdateController());
+        registerController(HttpMethod.POST, "/v0/image", new ImageCreateController());
+        registerController(HttpMethod.PUT, "/v0/image/:id/link", new ImageUserLinkController());
+
+        // Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+
+        //
+        // Register calls to external microservices HERE:
+        //
+        registerController(HttpMethod.GET, "/image", new PostgRESTRedirectionController());
+
+        // At last step, register the route "GET /", which is the most generic one:
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+
+        RegisteredReverseProxy proxy = new RegisteredReverseProxy(9080);
+        proxy.registerPath("^\\/auth.*$", "localhost:8080");
+        proxy.registerPath("^\\/v0.*$", "localhost:48080" );
+        proxy.registerPath("^\\/$", "localhost:48080");
+        proxy.run();
+    }
+```
+
+_Obs.: If you want to add a route without permission control, you can use the `SimpleServerProxyController` as the superclass of your specialized proxy class. If you're using simple user management, as in the sample project from section `5.1`, you'll also use the `SimpleServerProxyController` class as the superclass of your proxy redirector. The class specialization procedure is essentially equals as that shown above._
+
+The redirection can be made to any HTTP path supported by our PostgREST instance, since methods are `GET`, `POST`, `PUT`, `DELETE` and `PATCH`, and the entity body can be represented by a UTF-8 string.
+
+If a configuration called `PostgREST address` doesn't exist in table `configuration`, then the proxy redirector will call `http://localhost:9580`, which works as a default address for PostgREST.
+
+For a client accessing Microweb Sample application, the `GET /image` resource works exactly equals any other resource, being developed by Microweb or not.
+
+Now you need to go to KeyCloak, enter as __microwebadmin__ user, create a resource called `GET /image#` and assign it to the scope `user-manager-api`, as planned before.
 
 #### 5.2.5.2. Implementing complete reverse proxies
 
-__TODO__
+Previously we saw how to register in Microweb HTTP REST services implemented elsewhere, specializing the proxy controllers (`SimpleServerProxyController` and `CentralAuthorizedServerProxyController` classes), but they have severe limitations:
+
+* Only supoort methods `GET`, `POST`, `PUT`, `PATCH` and `DELETE`.
+* Entity body in all calls must be representable by a UTF-8 valid string.
+* Each service must be registered individually.
+
+And what if we need to register a service that receives uploaded images or video? Obviously, we can convert these data to text-compatible representation (like Base64 or ASCII85), but this approach is not exacly space and processing efficient.
+
+To support this situations, Microweb packs one more class, which is a specialization of the already packed reverse proxy: `CentralAuthorizedRegisteredReverseProxy`, that extends `RegisteredReverseProxy`.
+
+Both classes, above, work exactly equals to each other, but `CentralAuthorizedRegisteredReverseProxy` implements the request permission filter `RegisteredReverseProxy` provides, and this implementation delegate to KeyCloak the permission evaluation needed to each resource redirected and filtered by its instances.
+
+Using `RegisteredReverseProxy` we already shown how to attach any HTTP service to a Microweb microservice. It has been done with KeyCloak itself, which has been completely integrated to Microweb Sample project through the routes at the `^\/auth.*$` paths. With `CentralAuthorizedRegisteredReverseProxy`, we go beyond, and all paths registered on its instance will be filtered and sent to KeyCloak for permission evaluation.
+
+Now, let's change the reverse proxy implementation in the `App.initializationmethod` to support the permission filtered reverse proxy:
+
+__File__ `src/main/java/microweb/sample/App.java`, method `initialization`
+```java
+        @Override
+    public void initialization() throws Exception {
+        getRouter().route("/static/*").handler(StaticHandler.create());
+
+        // Register controllers:
+
+        // Finish login authentication:
+        registerController(HttpMethod.GET, "/v0/finish-login", new FinishLoginController());
+
+        // Default finish consent call:
+        registerController(HttpMethod.GET, "/v0/finish-consent", new FinishConsentController());
+
+        // User access controllers:
+        registerController(HttpMethod.GET, "/v0/gui-user-login", new GuiUserLoginViewController());
+        registerController(HttpMethod.POST, "/v0/gui-user-login", new GuiUserLoginProcessController());
+        registerController(HttpMethod.GET, "/v0/gui-user-logoff", new GuiUserLogoffProcessController());
+
+        // Image manipulation:
+        registerController(HttpMethod.POST, "/v0/gui-image/:id/assign", new GuiImageAssignController());
+        registerController(HttpMethod.GET, "/v0/gui-image/:id/raw", new GuiImageRawDataController());
+        registerController(HttpMethod.POST, "/v0/gui-image", new GuiImageCreationController());
+
+        // User management:
+        registerController(HttpMethod.GET, "/v0/gui-user-management", new GuiUserManagementController());
+        registerController(HttpMethod.POST, "/v0/gui-user/:id/role", new GuiAssignRoleController());
+        registerController(HttpMethod.POST, "/v0/gui-user", new GuiCreateUserController());
+
+        // REST API calls:
+        registerController(HttpMethod.POST, "/v0/user", new GuiCreateUserController());
+        registerController(HttpMethod.GET, "/v0/user", new UserController());
+        registerController(HttpMethod.GET, "/v0/user/:userIdOrName", new OtherUsersController());
+        registerController(HttpMethod.PATCH, "/v0/user/:id/password", new UserPasswordUpdateController());
+        registerController(HttpMethod.POST, "/v0/image", new ImageCreateController());
+        registerController(HttpMethod.PUT, "/v0/image/:id/link", new ImageUserLinkController());
+
+        // Default system home page handling:
+        registerController(HttpMethod.GET, "/v0", new DefaultHomePageController());
+
+        // Remove this path, because it will be handled by the reverse proxy:
+        // Register calls to external microservices:
+        // registerController(HttpMethod.GET, "/image", new PostgRESTRedirectionController());
+
+        // At last step, register the route "GET /", which is the most generic one:
+        registerController(HttpMethod.GET, "/", new DefaultHomePageController());
+
+        CentralAuthorizedRegisteredReverseProxy proxy = new CentralAuthorizedRegisteredReverseProxy(9080);
+
+        // KeyCloak and Microweb own paths aren't evaluated by the reverse proxy,
+        // since they have their own Permission control:
+        proxy.registerPath("^\\/auth.*$", "localhost:8080");
+        proxy.registerPath("^\\/v0.*$", "localhost:48080");
+
+        // Add any generic search path to PostgREST, with the exception of "/", and enable Permission filtering on them:
+        proxy.registerPath("^\\/.+$", "localhost:9580", true);
+
+        // "/", being the most generic address, continue to be handled by this application:
+        proxy.registerPath("^\\/$", "localhost:48080");
+        proxy.run();
+    }
+```
+
+With these changes, all calls to PostgREST will be mediated by the Reverse Proxy, but not by the custom Proxy Controllers. Any HTTP call can be controlled and have its permissions evaluated in this way.
+
+Now, you can customize the sample application to your needs, or correct all of its bugs, or incomplete features, as an exercise.
+
+The most important Microweb features have been presented.
 
 # 6. Conclusions and Next Steps
 
-__TODO__
+This README and Tutorial has the objective to present Microweb as an MVC framework, with OpenID permission control enabled and as a framework to register REST and HTTP services developed in multiple technologies, under SOA architecture.
+
+Microweb doesn't aim to be the best implementation of these architectures, nor be the ultimate MVC, OpenID or SOA middleware. It aims to provide Vert.X integration with OpenID, through KeyCloak, and to be the base of REST services in heterogenous environments.
+
+This project is being published to be useful. Any help to improve the framework is welcome, and if Microweb is useful to you, let us know.
+
+Thank you if you reached this point of the text.
+
+Any bug or problem, just open a ticket in the project issue tracker.
