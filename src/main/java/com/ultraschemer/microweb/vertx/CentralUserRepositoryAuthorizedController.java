@@ -37,7 +37,7 @@ public abstract class CentralUserRepositoryAuthorizedController extends SimpleCo
 
             if (token == null) {
                 try {
-                    token = "Bearer " + context.getCookie("Microweb-Access-Token").getValue();
+                    token = context.getCookie("Microweb-Access-Token").getValue();
                 } catch (Exception e) { /* Ignore */ }
             }
 
