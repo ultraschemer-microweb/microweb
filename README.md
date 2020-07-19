@@ -46,7 +46,7 @@ repositories {
 }
 
 dependencies {
-  implementation "com.ultraschemer.microweb:microweb:0.6.14"
+  implementation "com.ultraschemer.microweb:microweb:0.6.15"
 }
 ```
 
@@ -61,7 +61,7 @@ Maven:
   <dependency>
     <groupId>com.ultraschemer.microweb</groupId>
     <artifactId>microweb</artifactId>
-    <version>0.6.14</version>
+    <version>0.6.15</version>
   </dependency>
 </dependencies>
 ```
@@ -389,7 +389,7 @@ repositories {
 
 dependencies {
     // The entire Microweb framework:
-    implementation 'com.ultraschemer.microweb:microweb:0.6.14'
+    implementation 'com.ultraschemer.microweb:microweb:0.6.15'
 
     // Database driver:
     implementation group: 'org.postgresql', name: 'postgresql', version: '42.2.4'

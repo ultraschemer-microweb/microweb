@@ -2,6 +2,7 @@ package com.ultraschemer.microweb.proxy;
 
 import com.ultraschemer.microweb.domain.CentralUserRepositoryManagement;
 import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.vertx.core.json.Json;
 import okhttp3.HttpUrl;
 
 import java.net.HttpCookie;
@@ -52,7 +53,7 @@ public class CentralAuthorizedRegisteredReverseProxy extends RegisteredReversePr
             }
         }
 
-        request.headers().add("user", CentralUserRepositoryManagement.evaluateResourcePermission(request.getMethod().toString(),
-                new URI(request.getUri()).getPath(), token));
+        request.headers().add("Microweb-User", Json.encode(CentralUserRepositoryManagement.evaluateResourcePermission(request.getMethod().toString(),
+                new URI(request.getUri()).getPath(), token)));
     }
 }
