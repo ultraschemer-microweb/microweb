@@ -27,13 +27,15 @@ public class CentralAuthorizedRegisteredReverseProxy extends RegisteredReversePr
         String token = request.headers().get("Authorization");
 
         if(token == null) {
-            List<HttpCookie> cookies = HttpCookie.parse(request.headers().get("Cookie"));
-            for (HttpCookie cookie : cookies) {
-                if (cookie.getName().trim().equals("Microweb-Access-Token")) {
-                    token = cookie.getValue();
-                    break;
+            try {
+                List<HttpCookie> cookies = HttpCookie.parse(request.headers().get("Cookie"));
+                for (HttpCookie cookie : cookies) {
+                    if (cookie.getName().trim().equals("Microweb-Access-Token")) {
+                        token = cookie.getValue();
+                        break;
+                    }
                 }
-            }
+            } catch (Exception e) { /* Ignore it - token continues to be null */ }
 
             if(token == null) {
                 token = request.headers().get("Microweb-Access-Token");
