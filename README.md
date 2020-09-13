@@ -4252,7 +4252,7 @@ The first party is the `user`. The user must authenticate him/herself, to ensure
 
 The second party is the application, the `client`. The application must ensure it is a valid application, and that the user given it permission to access him/her resources and data.
 
-Do not confuse this two steps with __two factor authentication__, which is a step further in security.
+Do not confuse this two steps with __[two factor authentication](https://auth0.com/learn/two-factor-authentication/)__, which is a step further in security.
 
 This README is not about __two factor authentication__, so an explanation about it won't be given here.
 
