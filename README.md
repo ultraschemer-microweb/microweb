@@ -4246,13 +4246,15 @@ Login, now, is controlled by KeyCloak. Then we need a mor detailed explanation a
 
 ### 5.2.4. Re-creating Login and Logoff calls
 
-When integrated with KeyCloak, Microweb must follow OpenID rules, and OpenID login process is strictly controlled in what is called __[two factor authentication](https://auth0.com/learn/two-factor-authentication/)__.
+When integrated with KeyCloak, Microweb must follow OpenID rules, and OpenID login process is strictly requires a 2-step login procedure, with the two parties involved in the login/sign-in process.
 
-The first factor is the `user`. The user must authenticate him/herself, to ensure he/she is who he/she says.
+The first party is the `user`. The user must authenticate him/herself, to ensure he/she is who he/she says, as the first step.
 
-The second factor is the application, the `client`. The application must ensure it is a valid application, and that the user given it permission to access him/her resources and data.
+The second party is the application, the `client`. The application must ensure it is a valid application, and that the user given it permission to access him/her resources and data.
 
-This README is not about __two factor authentication__, so an explanation about it won't be given here, just a sample implementation.
+Do not confuse this two steps with __two factor authentication__, which is a step further in security.
+
+This README is not about __two factor authentication__, so an explanation about it won't be given here.
 
 The first detail we must pay attention is that every OpenID client has two important data:
 
