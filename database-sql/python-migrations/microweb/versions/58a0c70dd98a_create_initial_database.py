@@ -31,19 +31,6 @@ def upgrade():
         raise Exception("Configuration [openid]available_permissions couldn't " 
                 "contain single quotes.")
     
-    # This table stores the entity history in the entire database. It's a JSON
-    # database, indexed on the id field, to enable fast search
-    op.create_table(
-        'entity_history',
-        # The primary key is a sequential big number, to ensure order.
-        # This is the only table in the entire system not using a GUID id.
-        sa.Column('id', sa.Numeric(38), nullable=False),
-        sa.Column('entity_name', sa.String(1024), nullable=False),
-        sa.Column('entity_id', entity_id_type, nullable=False),
-        sa.Column('entity_data', sa.Text, nullable=False),
-        sa.Column('create_date', sa.types.TIMESTAMP(timezone=True), nullable=False, 
-            server_default=sa.func.now()))
-
     # Create the general configurations table:
     op.create_table(
         'configuration',
@@ -213,10 +200,6 @@ def upgrade():
         insert into configuration(name, value)
         values('Java backend port', '48080')
         """)
-    op.execute("""
-        insert into entity_history(id, entity_name, entity_id, entity_data) 
-        values (0, '<no-entity>', %s, '{}')
-        """ % uuid_generation_function)
     op.execute(f"""
         insert into configuration(name, value)
         values ('backend oauth wellknown', '{server_path}/auth/realms/{realm}/.well-known/uma2-configuration')
@@ -263,5 +246,4 @@ def downgrade():
     op.drop_table('lock_control')
     op.drop_table('runtime')
     op.drop_table('configuration')
-    op.drop_table('entity_history')
 
