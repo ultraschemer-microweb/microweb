@@ -80,7 +80,7 @@ dependencies {
 }
 
 def _group = 'com.ultraschemer.microweb'
-def _version = '0.7.1'
+def _version = '0.7.2'
 publishing {
     publications {
         mavenJava(MavenPublication) {
