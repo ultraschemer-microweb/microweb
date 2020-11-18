@@ -3,7 +3,7 @@
   "component": {
     "group": "com.ultraschemer.microweb",
     "module": "microweb",
-    "version": "0.7.0",
+    "version": "0.7.1",
     "attributes": {
       "org.gradle.status": "release"
     }
@@ -11,7 +11,7 @@
   "createdBy": {
     "gradle": {
       "version": "6.1.1",
-      "buildId": "tmb6r2vcyzeytisqh47ivxl2ui"
+      "buildId": "2kjm5hbyuzgbjgtho7pr5vmu6m"
     }
   },
   "variants": [
@@ -112,8 +112,8 @@
       ],
       "files": [
         {
-          "name": "microweb-0.7.0.jar",
-          "url": "microweb-0.7.0.jar",
+          "name": "microweb-0.7.1.jar",
+          "url": "microweb-0.7.1.jar",
           "size": 153382,
           "sha512": "410bb83be5644fc4d0b94ac9e1260045c0e3983958437818596ca18cb12587d8016c6a486adab841f236550c77cd9965580c16aada1a3638f3d5b26c9c58cc4b",
           "sha256": "baff2d4b04f247ccaa043d4f1d45f4ae903d251740f3754686ab2f04c5cd0706",
@@ -219,8 +219,8 @@
       ],
       "files": [
         {
-          "name": "microweb-0.7.0.jar",
-          "url": "microweb-0.7.0.jar",
+          "name": "microweb-0.7.1.jar",
+          "url": "microweb-0.7.1.jar",
           "size": 153382,
           "sha512": "410bb83be5644fc4d0b94ac9e1260045c0e3983958437818596ca18cb12587d8016c6a486adab841f236550c77cd9965580c16aada1a3638f3d5b26c9c58cc4b",
           "sha256": "baff2d4b04f247ccaa043d4f1d45f4ae903d251740f3754686ab2f04c5cd0706",

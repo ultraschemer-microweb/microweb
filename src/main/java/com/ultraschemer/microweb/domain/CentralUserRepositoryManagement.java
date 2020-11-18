@@ -21,12 +21,17 @@ import javax.persistence.PersistenceException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class CentralUserRepositoryManagement {
-    private static OkHttpClient client = new OkHttpClient();
+    private static final OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(0, TimeUnit.MILLISECONDS)
+            .writeTimeout(0, TimeUnit.MILLISECONDS)
+            .readTimeout(0, TimeUnit.MILLISECONDS)
+            .build();
     private static JsonObject wellKnown = null;
     private static JsonObject masterWellKnown = null;
     private static final Pattern bearerP = Pattern.compile("^Bearer\\s+(.+)$");
