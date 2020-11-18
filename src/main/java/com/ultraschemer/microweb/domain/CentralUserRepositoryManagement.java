@@ -28,9 +28,9 @@ import java.util.stream.Collectors;
 
 public class CentralUserRepositoryManagement {
     private static final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(45, TimeUnit.SECONDS)
-            .writeTimeout(45, TimeUnit.SECONDS)
-            .readTimeout(45, TimeUnit.SECONDS)
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
             .build();
     private static JsonObject wellKnown = null;
     private static JsonObject masterWellKnown = null;
