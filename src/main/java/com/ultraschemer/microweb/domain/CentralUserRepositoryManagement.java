@@ -18,6 +18,7 @@ import okhttp3.*;
 import org.hibernate.Session;
 
 import javax.persistence.PersistenceException;
+import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -28,9 +29,9 @@ import java.util.stream.Collectors;
 
 public class CentralUserRepositoryManagement {
     private static final OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(2500, TimeUnit.MILLISECONDS)
-            .writeTimeout(2500, TimeUnit.MILLISECONDS)
-            .readTimeout(2500, TimeUnit.MILLISECONDS)
+            .connectTimeout(1500, TimeUnit.MILLISECONDS)
+            .writeTimeout(1500, TimeUnit.MILLISECONDS)
+            .readTimeout(1500, TimeUnit.MILLISECONDS)
             .build();
     private static JsonObject wellKnown = null;
     private static JsonObject masterWellKnown = null;
@@ -184,6 +185,13 @@ public class CentralUserRepositoryManagement {
         } catch(UnauthorizedException ue) {
             throw ue;
         } catch(Exception e) {
+            if(e instanceof SocketTimeoutException) {
+                // Wait KeyCloak release the socket connection queue:
+                try { Thread.sleep(1500); } catch (Exception ignore) {}
+                // Call again - until it succeeds or have another kind of failure:
+                return evaluateResourcePermission(method, path, authorization);
+            }
+
             throw new UnauthorizedException("Unable to identify permission for given resource: " +
                     e.getLocalizedMessage(), e);
         }
